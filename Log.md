@@ -72,3 +72,9 @@ This document tracks all changes made starting from the code review and branch f
 ### 7. 🔧 VS Code TypeScript Compiler Fix (`TS5097`)
 - *Problem*: VS Code showed a red error badge (`1`) on `index.ts` because TypeScript requires `"allowImportingTsExtensions": true` when importing files directly with explicit `.ts` extensions in modern Node 24 ESM projects.
 - *Fix*: Enabled `"allowImportingTsExtensions": true` and `"noEmit": true` in [`backend/tsconfig.json`](file:///c:/Users/joshw/OneDrive/Desktop/Josh/Joshwyn%20Stuff/BnB%20%20Hackathon%202026/TheFlerkens_college_round/backend/tsconfig.json). Verified with `npx tsc --noEmit` — 0 errors found.
+
+---
+
+### 8. ⚡ Asynchronous Atomic Persistence (`backend/src/db/store.ts`)
+- *Problem*: Synchronous `fs.writeFileSync` in `store.ts` could cause race conditions or block the Node event loop under rapid concurrent writes.
+- *Fix*: Replaced synchronous writes with asynchronous `fs.promises.writeFile` to a temporary buffer (`store.json.tmp`) followed by atomic rename, backed by a non-blocking queue/debounce. All tests pass in 488ms.

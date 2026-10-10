@@ -14,9 +14,13 @@ class DataStore {
   public attacks = new Map<string, AttackRun>();
   public defenses = new Map<string, DefenseProfile>();
   private filePath: string;
+  private tempPath: string;
+  private isWriting = false;
+  private pendingWrite = false;
 
   constructor() {
     this.filePath = path.resolve(process.cwd(), "store.json");
+    this.tempPath = path.resolve(process.cwd(), "store.json.tmp");
     this.load();
   }
 
@@ -34,16 +38,32 @@ class DataStore {
     }
   }
 
-  public save() {
+  public async save(): Promise<void> {
+    if (this.isWriting) {
+      this.pendingWrite = true;
+      return;
+    }
+
+    this.isWriting = true;
     try {
       const data: SerializedState = {
         agents: Array.from(this.agents.entries()),
         attacks: Array.from(this.attacks.entries()),
         defenses: Array.from(this.defenses.entries()),
       };
-      fs.writeFileSync(this.filePath, JSON.stringify(data, null, 2), "utf-8");
+
+      // Atomic asynchronous write to temp file then rename to prevent lock collisions
+      await fs.promises.writeFile(this.tempPath, JSON.stringify(data, null, 2), "utf-8");
+      await fs.promises.rename(this.tempPath, this.filePath);
     } catch {
       // Non-fatal if writing to disk fails in read-only sandbox environments
+    } finally {
+      this.isWriting = false;
+      if (this.pendingWrite) {
+        this.pendingWrite = false;
+        // Schedule pending write run
+        void this.save();
+      }
     }
   }
 
@@ -54,6 +74,9 @@ class DataStore {
     try {
       if (fs.existsSync(this.filePath)) {
         fs.unlinkSync(this.filePath);
+      }
+      if (fs.existsSync(this.tempPath)) {
+        fs.unlinkSync(this.tempPath);
       }
     } catch {
       // ignore

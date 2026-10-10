@@ -2,6 +2,7 @@
 node_modules/
 dist/
 *.db
-store.json
+store.json*
+*.tmp
 .DS_Store
 Thumbs.db
