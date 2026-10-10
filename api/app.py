@@ -139,10 +139,16 @@ def start_attack_run(
             target_id=target_id,
         )
     except RuntimeError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        import logging; logging.error(f"ATTACK EXCEPTION: {str(e)}"); raise HTTPException(status_code=400, detail=str(e))
 
 
+
+@app.get("/api/v1/attacks/logs", operation_id="getAttackLogs")
+def get_attack_logs() -> Dict[str, Any]:
+    return {"logs": stream_logs}
+    
 @app.get("/api/v1/attacks/{run_id}", response_model=Dict[str, Any], operation_id="getAttackRun")
+
 def get_attack_status(run_id: str) -> Dict[str, Any]:
     trace = coordinator.storage.get_trace(run_id)
     if not trace:
@@ -182,8 +188,4 @@ def validate_defense(req: DefenseValidationRequest) -> EvaluationReport:
             status_code=status.HTTP_404_NOT_FOUND,
             detail=str(e),
         )
-
-@app.get("/api/v1/attacks/logs", operation_id="getAttackLogs")
-def get_attack_logs() -> Dict[str, Any]:
-    return {"logs": stream_logs}
 
