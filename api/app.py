@@ -126,11 +126,16 @@ def start_attack_run(
     mode = req.execution_mode if req else None
     families = req.attack_families if req else None
     target_id = req.target_id if req else None
-    return coordinator.run_attack_suite(
-        attack_families=families,
-        execution_mode=mode,
-        target_id=target_id,
-    )
+    
+    from fastapi import HTTPException
+    try:
+        return coordinator.run_attack_suite(
+            attack_families=families,
+            execution_mode=mode,
+            target_id=target_id,
+        )
+    except RuntimeError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 @app.get("/api/v1/attacks/{run_id}", response_model=Dict[str, Any], operation_id="getAttackRun")
