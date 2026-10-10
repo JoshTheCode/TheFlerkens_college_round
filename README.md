@@ -64,14 +64,47 @@ The implementation must not access live banking systems, real credentials, the h
 - [TEAMWORK_PROJECT_PROMPT.md](TEAMWORK_PROJECT_PROMPT.md): Antigravity/teamwork-ready implementation prompt
 - [STATE.md](STATE.md): current progress, decisions, and technical debt
 
-## Setup
+## Quickstart & Reproducibility
 
-Reproducible setup is the first unresolved milestone. Before presenting the project as complete, add:
+### 1. Installation
 
-- `pyproject.toml`;
-- a committed lockfile;
-- `.env.example`;
-- exact install, test, and run commands;
-- continuous integration.
+```bash
+# Create virtual environment with Python 3.11+ (or Python 3.9+)
+python3 -m venv .venv
+source .venv/bin/activate
 
-Do not infer a passing build from the prerecorded trace.
+# Install from pinned lockfile
+pip install -r requirements.lock
+
+# (Optional) Copy environment template
+cp .env.example .env
+```
+
+### 2. Run Test Suite
+
+```bash
+source .venv/bin/activate
+python3 -m pytest -v tests/
+```
+
+### 3. Start the API Service
+
+```bash
+source .venv/bin/activate
+uvicorn api.app:app --host 0.0.0.0 --port 8000 --reload
+```
+
+### 4. Run Baseline Attack Run
+
+```bash
+curl -X POST http://localhost:8000/api/v1/attacks/start
+```
+
+### 5. Validate Defense Profile
+
+```bash
+curl -X POST http://localhost:8000/api/v1/defenses/validate \
+  -H "Content-Type: application/json" \
+  -d '{"isolate_untrusted_documents": true, "strict_tool_authorization": true, "validate_memory_writes": true}'
+```
+
