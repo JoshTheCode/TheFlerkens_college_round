@@ -19,12 +19,11 @@ As AI agents are granted access to private datasets, external APIs, and multi-st
 
 AgentBreak is organized into 4 modular subsystems across a 4-member role division:
 
-| Subsystem | Member Role | Directory | Stack | Port / Command |
+| Subsystem | Role | Directory | Stack | Port / Command |
 | :--- | :--- | :--- | :--- | :--- |
-| **1. Security Evaluation Dashboard** | Member 1 (Frontend Lead) | `/frontend` | React, Vite, Tailwind CSS | `npm run dev` (`:5173`) |
-| **2. Target Sandbox & Persistence Backend** | Member 2 (Backend Lead) | `/backend` | Node.js (TypeScript), Express | `npm start` (`:8000`) |
-| **3. Core API Contracts & OpenAPI** | Member 3 (API Integration Lead) | `/api` | FastAPI / OpenAPI 3.1 / JSON Schema | `uvicorn api.app:app` (`:8000`) |
-| **4. Autonomous Red Team Engine** | Member 4 (AI/ML Specialist) | `/agents`, `/scripts` | Python, Pydantic, Pytest | `python -m scripts.run_demo` |
+| **1. Security Evaluation Dashboard** | Frontend | `/frontend` | React, Vite | `npm run dev` (`:5173`) |
+| **2. FastAPI Backend & OpenAPI Contract** | API + Backend | `/api`, `/agents` | Python, FastAPI, OpenAPI 3.1 | `uvicorn api.app:app` (`:8000`) |
+| **3. Autonomous Red Team Engine** | AI/ML | `/agents`, `/scripts` | Python, Pydantic, Pytest | `python -m scripts.run_demo` |
 
 ```text
 Target Profile (Banking / Custom)
