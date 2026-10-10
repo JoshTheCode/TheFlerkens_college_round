@@ -1,5 +1,15 @@
 # AgentBreak AI Agents - Implementation Plan
 
+> Current implementation audit: [BRANCH_AUDIT.md](BRANCH_AUDIT.md)
+>
+> Approved execution prompt: [TEAMWORK_PROJECT_PROMPT.md](TEAMWORK_PROJECT_PROMPT.md)
+
+## Current Implementation Warning
+
+The branch currently implements the sandbox, deterministic judge, API skeleton, fixtures, and a scripted demonstration. It does not yet implement the model-driven planner, adaptive generator, or tool-calling target described by this plan.
+
+The hardcoded planner, payload tables, and keyword-based target are temporary test fixtures. They must not be presented as autonomous agents. Completion requires the measurable autonomy, replay, reproducibility, and test criteria in `TEAMWORK_PROJECT_PROMPT.md`.
+
 ## Goal
 
 Build one safe, reproducible vertical slice of AgentBreak: an autonomous red-team pipeline that attacks an intentionally vulnerable mock AI agent, records concrete evidence, and reruns successful exploits against a defense profile.
