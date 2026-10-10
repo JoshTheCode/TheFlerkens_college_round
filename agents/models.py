@@ -21,6 +21,24 @@ class RunStatus(str, Enum):
     RUNNING = "running"
     COMPLETED = "completed"
     FAILED = "failed"
+    CANCELLED = "cancelled"
+
+
+class ExecutionMode(str, Enum):
+    LIVE = "live"
+    DETERMINISTIC_FIXTURE = "deterministic_fixture"
+    PRERECORDED = "prerecorded"
+
+
+class StoppingReason(str, Enum):
+    ALL_ATTACK_FAMILIES_COMPLETED = "all_attack_families_completed"
+    ATTEMPT_BUDGET_EXHAUSTED = "attempt_budget_exhausted"
+    TIME_BUDGET_EXHAUSTED = "time_budget_exhausted"
+    TOKEN_BUDGET_EXHAUSTED = "token_budget_exhausted"
+    COST_BUDGET_EXHAUSTED = "cost_budget_exhausted"
+    PROVIDER_ERROR = "provider_error"
+    CANCELLED = "cancelled"
+    INTERNAL_ERROR = "internal_error"
 
 
 class ToolDefinition(BaseModel):
@@ -65,6 +83,17 @@ class MemoryDiff(BaseModel):
     removed: List[str] = Field(default_factory=list)
 
 
+class ModelCallMetadata(BaseModel):
+    provider: str
+    model: str
+    prompt_version: str = "v1"
+    latency_ms: float = 0.0
+    input_tokens: Optional[int] = None
+    output_tokens: Optional[int] = None
+    estimated_cost_usd: Optional[float] = None
+    error_code: Optional[str] = None
+
+
 class AttackAttempt(BaseModel):
     attempt_id: int
     family: AttackFamily
@@ -75,6 +104,8 @@ class AttackAttempt(BaseModel):
     memory_after: Dict[str, str] = Field(default_factory=dict)
     memory_diff: MemoryDiff = Field(default_factory=MemoryDiff)
     adaptation_notes: Optional[str] = None
+    failed_success_predicate: Optional[str] = None
+    model_call: Optional[ModelCallMetadata] = None
     duration_ms: float = 0.0
     timestamp: str = ""
 
@@ -112,7 +143,7 @@ class FamilyReplayResult(BaseModel):
 class ExecutionTrace(BaseModel):
     run_id: str
     status: RunStatus
-    execution_mode: str = "deterministic_fallback"  # "live" | "deterministic_fallback" | "prerecorded"
+    execution_mode: ExecutionMode = ExecutionMode.DETERMINISTIC_FIXTURE
     target_profile: TargetProfile
     defense_profile: Optional[DefenseProfile] = None
     plans: List[AttackPlan] = Field(default_factory=list)
@@ -122,7 +153,7 @@ class ExecutionTrace(BaseModel):
     total_tokens_used: int = 0
     cost_usd: Optional[float] = None  # None indicates exact pricing unavailable locally
     cost_status: str = "unavailable"  # "unavailable" | "calculated"
-    stopping_reason: str = "All attack families completed"
+    stopping_reason: StoppingReason = StoppingReason.ALL_ATTACK_FAMILIES_COMPLETED
     start_time: str
     end_time: Optional[str] = None
     is_prerecorded: bool = False

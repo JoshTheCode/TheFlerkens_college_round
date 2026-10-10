@@ -57,7 +57,9 @@ def run_vertical_slice_demo(mode: str) -> None:
         AttackFamily.UNAUTHORIZED_TOOL_USE,
         AttackFamily.MEMORY_POISONING,
     ]
-    trace = coordinator.run_attack_suite(attack_families=families_to_run)
+    from agents.models import ExecutionMode
+    exec_mode = ExecutionMode.LIVE if mode == "live" else ExecutionMode.DETERMINISTIC_FIXTURE
+    trace = coordinator.run_attack_suite(attack_families=families_to_run, execution_mode=exec_mode)
 
     for plan in trace.plans:
         fam_attempts = [a for a in trace.attempts if a.family == plan.family]

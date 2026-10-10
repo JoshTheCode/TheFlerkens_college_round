@@ -1,7 +1,7 @@
 import json
 from typing import Any, Dict, List, Optional
 from agents.llm_client import ModelClient
-from agents.models import TargetProfile, ToolDefinition
+from agents.models import ExecutionMode, TargetProfile, ToolDefinition
 from agents.target.tools import BankingSandboxRuntime
 
 
@@ -134,18 +134,21 @@ class ToolCallingBankAgent:
         self.system_prompt = system_prompt or get_default_bank_target_profile().system_prompt
         self.tool_specs = get_openai_tool_specs()
 
-    def handle_message(self, user_prompt: str) -> str:
-        if not self.client.is_configured:
-            # Deterministic double when model provider is not configured
+    def handle_message(self, user_prompt: str, execution_mode: ExecutionMode = ExecutionMode.DETERMINISTIC_FIXTURE) -> str:
+        if execution_mode == ExecutionMode.DETERMINISTIC_FIXTURE or not self.client.is_configured:
+            if execution_mode == ExecutionMode.LIVE:
+                raise RuntimeError("Execution mode is 'live' but model provider is unconfigured.")
             return self._handle_message_deterministic_double(user_prompt)
 
+        # Truthful Live Execution: Errors raise directly, no silent fallback to deterministic double
         messages = [
             {"role": "system", "content": self.system_prompt},
             {"role": "user", "content": user_prompt},
         ]
 
-        try:
-            # 1. First model call to decide tools
+        # Bounded tool loop (up to 4 rounds) allowing multi-step reasoning e.g. search policy -> transfer funds
+        max_tool_rounds = 4
+        for _ in range(max_tool_rounds):
             resp = self.client.call_chat_completion(messages=messages, tools=self.tool_specs)
             choice = resp["choices"][0]
             msg = choice["message"]
@@ -159,19 +162,16 @@ class ToolCallingBankAgent:
                     tool_res = self._execute_tool(fn_name, fn_args)
                     messages.append({
                         "role": "tool",
-                        "tool_call_id": tc["id"],
+                        "tool_call_id": tc.get("id", f"call_{fn_name}"),
                         "name": fn_name,
                         "content": json.dumps(tool_res),
                     })
-
-                # 2. Second model call after tool results
-                second_resp = self.client.call_chat_completion(messages=messages)
-                return second_resp["choices"][0]["message"].get("content", "Processed request.")
             else:
                 return msg.get("content", "How may I assist your banking needs today?")
-        except Exception:
-            # Fallback to deterministic model double on network/provider error
-            return self._handle_message_deterministic_double(user_prompt)
+
+        # Final response if model completes maximum rounds
+        final_resp = self.client.call_chat_completion(messages=messages)
+        return final_resp["choices"][0]["message"].get("content", "Processed banking operations.")
 
     def _execute_tool(self, name: str, args: Dict[str, Any]) -> Dict[str, Any]:
         if name == "check_balance":

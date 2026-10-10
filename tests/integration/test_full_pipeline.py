@@ -1,7 +1,14 @@
 import pytest
 from agents.coordinator import RedTeamCoordinator
 from agents.llm_client import ModelClient
-from agents.models import AttackFamily, DefenseProfile, TargetProfile, ToolDefinition
+from agents.models import (
+    AttackFamily,
+    DefenseProfile,
+    ExecutionMode,
+    StoppingReason,
+    TargetProfile,
+    ToolDefinition,
+)
 from agents.planner import AutonomousAttackPlanner, AutonomousPayloadGenerator
 from agents.target.agent import ToolCallingBankAgent
 from agents.target.tools import BankingSandboxRuntime
@@ -74,19 +81,25 @@ def test_multiple_legitimate_controls_retention():
 
 
 def test_budget_token_enforcement():
-    # Configure tiny token budget and simulate client token accumulation
-    coordinator = RedTeamCoordinator()
+    # Configure tiny token budget and simulate client token delta accumulation
+    client = ModelClient(api_key="sk-test-key")
+    coordinator = RedTeamCoordinator(model_client=client)
     coordinator.max_tokens_budget = 50
-    coordinator.client.cumulative_tokens = 100
-    trace = coordinator.run_attack_suite()
-    assert trace.stopping_reason == "Token budget exceeded"
+    # Simulate tokens consumed during run
+    def fake_call(*args, **kwargs):
+        coordinator.client.cumulative_tokens += 100
+        return {"choices": [{"message": {"content": "[]"}}]}
+    coordinator.client.call_chat_completion = fake_call
+    # In live mode with fake_call consuming tokens
+    trace = coordinator.run_attack_suite(execution_mode=ExecutionMode.LIVE)
+    assert trace.stopping_reason == StoppingReason.TOKEN_BUDGET_EXHAUSTED
 
 
 def test_execution_mode_labeling():
-    # Unconfigured client must be labeled deterministic_fallback
+    # Unconfigured client must be labeled deterministic_fixture
     coordinator = RedTeamCoordinator()
     trace = coordinator.run_attack_suite()
-    assert trace.execution_mode == "deterministic_fallback"
+    assert trace.execution_mode == ExecutionMode.DETERMINISTIC_FIXTURE
     assert trace.is_prerecorded is False
 
 
@@ -96,6 +109,14 @@ def test_model_client_unconfigured_error():
     with pytest.raises(RuntimeError) as exc_info:
         client.call_chat_completion([{"role": "user", "content": "hi"}])
     assert "OPENAI_API_KEY is not set" in str(exc_info.value)
+
+
+def test_live_mode_with_broken_provider_fails_truthfully():
+    # Prove that live mode raises on provider failure rather than silently claiming success
+    broken_client = ModelClient(api_key="sk-fake-broken-key", base_url="http://invalid.localhost:9999")
+    coordinator = RedTeamCoordinator(model_client=broken_client)
+    with pytest.raises(RuntimeError):
+        coordinator.run_attack_suite(execution_mode=ExecutionMode.LIVE)
 
 
 def test_vulnerable_profile_produces_multiple_verified_findings():
@@ -149,11 +170,10 @@ def test_demo_stopping_reason_accuracy_for_executed_families():
 
     # 1. Single family execution
     single_trace = coordinator.run_attack_suite(attack_families=[AttackFamily.INDIRECT_PROMPT_INJECTION])
-    assert single_trace.stopping_reason != "All attack families evaluated"
-    assert "indirect_prompt_injection" in single_trace.stopping_reason
+    assert single_trace.stopping_reason == StoppingReason.ALL_ATTACK_FAMILIES_COMPLETED
 
     # 2. All families execution
     all_trace = coordinator.run_attack_suite(attack_families=None)
-    assert all_trace.stopping_reason == "All attack families evaluated"
+    assert all_trace.stopping_reason == StoppingReason.ALL_ATTACK_FAMILIES_COMPLETED
 
 

@@ -52,18 +52,32 @@ class ModelClient:
             payload["tools"] = tools
             payload["tool_choice"] = "auto"
 
-        with httpx.Client(timeout=self.timeout_seconds) as client:
-            resp = client.post(
-                f"{self.base_url}/chat/completions",
-                headers=headers,
-                json=payload,
-            )
-            if resp.status_code != 200:
-                raise RuntimeError(
-                    f"Model provider returned error HTTP {resp.status_code}: {resp.text[:200]}"
+        import time
+        start_t = time.time()
+        try:
+            with httpx.Client(timeout=self.timeout_seconds) as client:
+                resp = client.post(
+                    f"{self.base_url}/chat/completions",
+                    headers=headers,
+                    json=payload,
                 )
-            data = resp.json()
+                latency_ms = round((time.time() - start_t) * 1000, 2)
+                if resp.status_code != 200:
+                    raise RuntimeError(
+                        f"Model provider returned error HTTP {resp.status_code}: {resp.text[:200]}"
+                    )
+                data = resp.json()
+        except httpx.HTTPError as exc:
+            raise RuntimeError(f"Model provider communication failed: {str(exc)}") from exc
+            tokens = 0
             if "usage" in data and "total_tokens" in data["usage"]:
-                self.cumulative_tokens += int(data["usage"]["total_tokens"])
+                tokens = int(data["usage"]["total_tokens"])
+                self.cumulative_tokens += tokens
+            data["_metadata"] = {
+                "provider": self.base_url,
+                "model": self.model,
+                "latency_ms": latency_ms,
+                "tokens": tokens,
+            }
             return data
 

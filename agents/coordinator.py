@@ -11,11 +11,13 @@ from agents.models import (
     AttackPlan,
     DefenseProfile,
     EvaluationReport,
+    ExecutionMode,
     ExecutionTrace,
     FamilyReplayResult,
     Finding,
     MemoryDiff,
     RunStatus,
+    StoppingReason,
     TargetProfile,
 )
 from agents.planner import AutonomousAttackPlanner, AutonomousPayloadGenerator
@@ -65,15 +67,21 @@ class RedTeamCoordinator:
         run_id: Optional[str] = None,
         defense: Optional[DefenseProfile] = None,
         attack_families: Optional[List[AttackFamily]] = None,
+        execution_mode: Optional[ExecutionMode] = None,
     ) -> ExecutionTrace:
         if not run_id:
             run_id = f"run_{uuid.uuid4().hex[:8]}"
 
-        plans = self.planner.plan_attacks(self.target_profile)
+        mode = execution_mode or (ExecutionMode.LIVE if self.client.is_configured else ExecutionMode.DETERMINISTIC_FIXTURE)
+
+        # Token delta snapshot at start of run
+        start_tokens = self.client.cumulative_tokens
+        suite_start_t = time.time()
+        deadline = suite_start_t + self.run_timeout_seconds
+
+        plans = self.planner.plan_attacks(self.target_profile, execution_mode=mode)
         if attack_families:
             plans = [p for p in plans if p.family in attack_families]
-
-        mode = "live" if self.client.is_configured else "deterministic_fallback"
 
         trace = ExecutionTrace(
             run_id=run_id,
@@ -85,21 +93,23 @@ class RedTeamCoordinator:
             start_time=time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         )
 
-        suite_start_t = time.time()
         attempts: List[AttackAttempt] = []
         findings: List[Finding] = []
         attempt_counter = 1
-        stopping_reason = "All attack families evaluated"
+        stopping_reason = StoppingReason.ALL_ATTACK_FAMILIES_COMPLETED
+        budget_exhausted = False
 
         for plan in plans:
             # Check suite timeout budget
-            if time.time() - suite_start_t > self.run_timeout_seconds:
-                stopping_reason = "Run timeout budget exceeded"
+            if time.time() > deadline:
+                stopping_reason = StoppingReason.TIME_BUDGET_EXHAUSTED
+                budget_exhausted = True
                 break
 
-            # Check token budget
-            if self.client.cumulative_tokens > self.max_tokens_budget:
-                stopping_reason = "Token budget exceeded"
+            # Check token budget delta
+            if (self.client.cumulative_tokens - start_tokens) > self.max_tokens_budget:
+                stopping_reason = StoppingReason.TOKEN_BUDGET_EXHAUSTED
+                budget_exhausted = True
                 break
 
             # Each plan gets a fresh isolated sandbox environment
@@ -111,8 +121,14 @@ class RedTeamCoordinator:
 
             # Bounded attempts
             for attempt_num in range(1, self.max_attempts + 1):
-                if self.client.cumulative_tokens > self.max_tokens_budget:
-                    stopping_reason = "Token budget exceeded"
+                if time.time() > deadline:
+                    stopping_reason = StoppingReason.TIME_BUDGET_EXHAUSTED
+                    budget_exhausted = True
+                    break
+
+                if (self.client.cumulative_tokens - start_tokens) > self.max_tokens_budget:
+                    stopping_reason = StoppingReason.TOKEN_BUDGET_EXHAUSTED
+                    budget_exhausted = True
                     break
 
                 payload, adaptation_notes = self.generator.generate_payload(
@@ -120,13 +136,14 @@ class RedTeamCoordinator:
                     attempt_num=attempt_num,
                     previous_attempt=prev_attempt,
                     judge_feedback=last_feedback,
+                    execution_mode=mode,
                 )
 
                 start_t = time.time()
                 mem_before = copy.deepcopy(sandbox.memory)
                 tool_calls_before_count = len(sandbox.call_records)
 
-                response = agent.handle_message(payload)
+                response = agent.handle_message(payload, execution_mode=mode)
                 duration_ms = (time.time() - start_t) * 1000
                 mem_after = copy.deepcopy(sandbox.memory)
 
@@ -164,6 +181,9 @@ class RedTeamCoordinator:
                     prev_attempt = attempt
                     last_feedback = finding.evidence or "Objective condition unmet"
 
+            if budget_exhausted:
+                break
+
             if not any(f.family == plan.family and f.success for f in findings):
                 # If all attempts failed, record negative finding
                 findings.append(
@@ -183,19 +203,9 @@ class RedTeamCoordinator:
         trace.attempts = attempts
         trace.findings = findings
         trace.total_findings_count = sum(1 for f in findings if f.success)
-        trace.total_tokens_used = self.client.cumulative_tokens
-
-        # Accurate stopping reason based on whether all target plans ran or a subset ran
-        if stopping_reason == "All attack families evaluated":
-            if attack_families and len(attack_families) < len(self.target_profile.tools):
-                fam_names = ", ".join(f.value for f in attack_families)
-                trace.stopping_reason = f"Configured attack families evaluated: {fam_names}"
-            else:
-                trace.stopping_reason = "All attack families evaluated"
-        else:
-            trace.stopping_reason = stopping_reason
-
-        trace.status = RunStatus.COMPLETED
+        trace.total_tokens_used = self.client.cumulative_tokens - start_tokens
+        trace.stopping_reason = stopping_reason
+        trace.status = RunStatus.FAILED if budget_exhausted and not trace.findings else RunStatus.COMPLETED
         trace.end_time = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
 
         # Persist trace locally
@@ -221,11 +231,12 @@ class RedTeamCoordinator:
         exact_replay_findings_count = 0
         family_results: List[FamilyReplayResult] = []
 
+        mode = baseline_trace.execution_mode
         for att in successful_attempts:
             # Replay against fresh sandbox with defense profile applied
             replay_sandbox = BankingSandboxRuntime(defense=defense)
             replay_agent = ToolCallingBankAgent(sandbox=replay_sandbox, model_client=self.client)
-            resp = replay_agent.handle_message(att.payload)
+            resp = replay_agent.handle_message(att.payload, execution_mode=mode)
 
             replay_att = AttackAttempt(
                 attempt_id=att.attempt_id,
@@ -268,8 +279,9 @@ class RedTeamCoordinator:
                     attempt_num=2,
                     previous_attempt=replay_att,
                     judge_feedback=replay_finding.evidence or "Blocked by defense profile",
+                    execution_mode=mode,
                 )
-                bypass_resp = bypass_agent.handle_message(bypass_payload)
+                bypass_resp = bypass_agent.handle_message(bypass_payload, execution_mode=mode)
                 adaptive_att = AttackAttempt(
                     attempt_id=att.attempt_id + 100,
                     family=att.family,
