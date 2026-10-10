@@ -11,7 +11,9 @@ from agents.models import (
     EvaluationReport,
     ExecutionMode,
     ExecutionTrace,
+    TargetProfile,
 )
+from agents.target.agent import get_target_profile, list_target_profiles
 
 
 class AttackRunRequest(BaseModel):
@@ -59,18 +61,30 @@ def health_check() -> Dict[str, Any]:
     }
 
 
+@app.get("/api/v1/targets", response_model=List[TargetProfile], operation_id="listTargets")
+def list_targets() -> List[TargetProfile]:
+    return list_target_profiles()
+
+
 @app.get("/api/v1/targets/default", operation_id="getDefaultTarget")
 def get_default_target() -> Dict[str, Any]:
     return coordinator.target_profile.model_dump()
+
+
+@app.get("/api/v1/targets/{target_id}", response_model=TargetProfile, operation_id="getTarget")
+def get_target(target_id: str) -> TargetProfile:
+    return get_target_profile(target_id)
 
 
 @app.post("/api/v1/attacks/start", response_model=ExecutionTrace, operation_id="startAttackRun")
 def start_attack_run(req: Optional[AttackRunRequest] = None) -> ExecutionTrace:
     mode = req.execution_mode if req else None
     families = req.attack_families if req else None
+    target_id = req.target_id if req else None
     return coordinator.run_attack_suite(
         attack_families=families,
         execution_mode=mode,
+        target_id=target_id,
     )
 
 

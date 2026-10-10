@@ -26,6 +26,28 @@
         }
       }
     },
+    "/api/v1/targets": {
+      "get": {
+        "summary": "List Targets",
+        "operationId": "listTargets",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/TargetProfile"
+                  },
+                  "type": "array",
+                  "title": "Response Listtargets"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/targets/default": {
       "get": {
         "summary": "Get Default Target",
@@ -39,6 +61,45 @@
                   "additionalProperties": true,
                   "type": "object",
                   "title": "Response Getdefaulttarget"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/targets/{target_id}": {
+      "get": {
+        "summary": "Get Target",
+        "operationId": "getTarget",
+        "parameters": [
+          {
+            "name": "target_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Target Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TargetProfile"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }

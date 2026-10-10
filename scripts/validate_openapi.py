@@ -38,6 +38,8 @@ def main() -> None:
     expected = {
         "getHealth",
         "getDefaultTarget",
+        "listTargets",
+        "getTarget",
         "startAttackRun",
         "getAttackRun",
         "getAttackTrace",

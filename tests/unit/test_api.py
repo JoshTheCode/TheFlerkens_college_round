@@ -25,6 +25,38 @@ def test_get_default_target(client):
     assert len(data["tools"]) == 5
 
 
+def test_list_and_get_multiple_targets(client):
+    res = client.get("/api/v1/targets")
+    assert res.status_code == 200
+    targets = res.json()
+    assert len(targets) >= 3
+    target_ids = {t["id"] for t in targets}
+    assert "bank_agent_v1" in target_ids
+    assert "health_agent_v1" in target_ids
+    assert "hr_agent_v1" in target_ids
+
+    # Query healthcare target specifically
+    res_h = client.get("/api/v1/targets/health_agent_v1")
+    assert res_h.status_code == 200
+    assert res_h.json()["name"] == "Clinical Triage & Patient Records Assistant"
+
+    # Query HR target specifically
+    res_hr = client.get("/api/v1/targets/hr_agent_v1")
+    assert res_hr.status_code == 200
+    assert res_hr.json()["name"] == "Enterprise HR & Payroll Operations Assistant"
+
+
+def test_attack_against_healthcare_target(client):
+    res = client.post(
+        "/api/v1/attacks/start",
+        json={"target_id": "health_agent_v1", "execution_mode": "deterministic_fixture"},
+    )
+    assert res.status_code == 200
+    data = res.json()
+    assert data["target_profile"]["id"] == "health_agent_v1"
+    assert len(data["plans"]) >= 3
+
+
 def test_attack_lifecycle_and_defense_validation(client):
     # 1. Start baseline run
     res = client.post("/api/v1/attacks/start")
