@@ -83,10 +83,10 @@ class RedTeamCoordinator:
         suite_start_t = time.time()
         deadline = suite_start_t + self.run_timeout_seconds
 
-        plans = self.planner.plan_attacks(target, execution_mode=mode)
         live_log(f"Planner LLM generating attack plans (this takes ~5-15s)...")
-        if attack_families:
+        plans = self.planner.plan_attacks(target, execution_mode=mode)
         live_log(f"LLM successfully generated {len(plans)} attack plans.")
+        if attack_families:
             plans = [p for p in plans if p.family in attack_families]
 
         trace = ExecutionTrace(
@@ -191,7 +191,7 @@ class RedTeamCoordinator:
                 else:
                     prev_attempt = attempt
                     last_feedback = finding.evidence or "Objective condition unmet"
-                live_log(f"Judge Outcome: {Success! if finding.success else Failed}. Evidence: {finding.evidence[:60]}...")
+                live_log(f"Judge Outcome: {'Success' if finding.success else 'Failed'}. Evidence: {finding.evidence[:60]}...")
 
             if budget_exhausted:
                 break
@@ -262,7 +262,7 @@ class RedTeamCoordinator:
                 adaptation_notes="Exact baseline replay against defense",
                 timestamp=time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
             )
-                live_log("Evaluating attempt with Security Judge...")
+            live_log("Evaluating attempt with Security Judge...")
             replay_finding = SecurityJudge.evaluate_attempt(
                 attempt=replay_att,
                 target_profile=baseline_trace.target_profile,
