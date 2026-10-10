@@ -115,62 +115,59 @@ export function TracesView({
       </section>
 
       {/* Exploit Trace Replayer */}
-      <div className="md">
-        <div className="stack-gap">
-          <section className="card">
-            <div className="card__head">
-              <div className="card__title">Discovered Traces</div>
+      <section className="card" style={{ marginBottom: 'var(--gap)' }}>
+        <div className="card__head">
+          <div>
+            <div className="card__title">Discovered Traces</div>
+            <div className="card__sub">Select a trace run below to inspect the step-by-step exploit timeline</div>
+          </div>
+          <div className="card__actions">
+            <div className="seg" role="group" aria-label="Filter by severity">
+              {['all', 'critical', 'high', 'medium'].map((f) => (
+                <button
+                  key={f}
+                  className={`seg__btn ${filter === f ? 'is-active' : ''}`}
+                  onClick={() => setFilter(f)}
+                >
+                  {f.charAt(0).toUpperCase() + f.slice(1)}
+                </button>
+              ))}
             </div>
-            <div className="card__body" style={{ padding: '12px' }}>
-              <div style={{ marginBottom: '12px' }}>
-                <div className="seg" role="group" aria-label="Filter by severity">
-                  {['all', 'critical', 'high', 'medium'].map((f) => (
-                    <button
-                      key={f}
-                      className={`seg__btn ${filter === f ? 'is-active' : ''}`}
-                      onClick={() => setFilter(f)}
-                    >
-                      {f.charAt(0).toUpperCase() + f.slice(1)}
-                    </button>
-                  ))}
+          </div>
+        </div>
+        <div className="card__body">
+          {/* Discovered Trace Cards Grid */}
+          <div className="trace-grid">
+            {filtered.map((t) => (
+              <div
+                key={t.trace_id}
+                className={`trace-card ${activeTrace?.trace_id === t.trace_id ? 'is-active' : ''}`}
+                onClick={() => {
+                  onSelectTrace(t.trace_id);
+                  setActiveStepIndex(1);
+                }}
+              >
+                <div className="trace-card__top">
+                  {getSeverityBadge(t.severity)}
+                  <span className="trace-card__score">
+                    Score {t.severity_score.toFixed(1)}
+                  </span>
+                </div>
+                <div className="trace-card__title">{t.title}</div>
+                <div className="trace-card__meta">
+                  <span className="mono">{t.trace_id}</span>
+                  <span className="sep">•</span>
+                  <span>{getAgentName(t.target_agent_id)}</span>
+                  <span className="sep">•</span>
+                  <span>{t.stage_count} stages</span>
+                  <span className="sep">•</span>
+                  <span className="conf">{Math.round(t.confidence * 100)}% confidence</span>
                 </div>
               </div>
-
-              {/* Sidebar Trace List (Readable Text & Highlighted Medium Badges) */}
-              <div className="trace-list">
-                {filtered.map((t) => (
-                  <button
-                    key={t.trace_id}
-                    className={`trace-item ${activeTrace?.trace_id === t.trace_id ? 'is-active' : ''}`}
-                    onClick={() => {
-                      onSelectTrace(t.trace_id);
-                      setActiveStepIndex(1);
-                    }}
-                  >
-                    <div className="trace-item__top">
-                      {getSeverityBadge(t.severity)}
-                      <span
-                        className="score"
-                        style={{
-                          marginLeft: 'auto',
-                          color: 'var(--ink)'
-                        }}
-                      >
-                        {t.severity_score.toFixed(1)}
-                      </span>
-                    </div>
-                    <div className="trace-item__title">{t.title}</div>
-                    <div className="trace-item__meta">
-                      <span>{getAgentName(t.target_agent_id)}</span>
-                      <span>{t.stage_count} stages</span>
-                      <span>{Math.round(t.confidence * 100)}% confidence</span>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-          </section>
+            ))}
+          </div>
         </div>
+      </section>
 
         {activeTrace && (
           <section className="card">
@@ -275,7 +272,6 @@ export function TracesView({
             </div>
           </section>
         )}
-      </div>
     </div>
   );
 }

@@ -140,18 +140,7 @@ export function Topbar({
         )}
       </div>
 
-      {primary && (
-        <span className="primary-action">
-          <button
-            className="btn btn--primary"
-            onClick={() => onPrimaryAction(primary.action)}
-            aria-label={primary.label}
-          >
-            <Icon name={primary.icon} size="sm" />
-            <span className="btn__label">{primary.label}</span>
-          </button>
-        </span>
-      )}
+      {/* Action buttons are rendered inside each view page header to prevent duplicate buttons */}
     </header>
   );
 }
