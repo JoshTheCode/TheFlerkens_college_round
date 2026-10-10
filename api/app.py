@@ -65,7 +65,7 @@ async def health_check(request: Request) -> Dict[str, Any]:
     if test_key:
         import httpx
         try:
-            async with httpx.AsyncClient(timeout=3.0) as client:
+            async with httpx.AsyncClient(timeout=10.0) as client:
                 resp = await client.get(
                     f"{provider_url.rstrip('/')}/models",
                     headers={"Authorization": f"Bearer {test_key}"}

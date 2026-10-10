@@ -14,7 +14,7 @@ class ModelClient:
         base_url: Optional[str] = None,
         api_key: Optional[str] = None,
         model: Optional[str] = None,
-        timeout_seconds: float = 15.0,
+        timeout_seconds: float = 60.0,
     ):
         self.base_url = (base_url or os.getenv("OPENAI_BASE_URL", "https://openrouter.ai/api/v1")).rstrip("/")
         self.api_key = api_key or os.getenv("OPENAI_API_KEY", "")
