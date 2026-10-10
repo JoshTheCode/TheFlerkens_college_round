@@ -1,8 +1,34 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Icon } from './Icons';
 
 export function CampaignsView({ campaigns, targetAgents, onLaunchCampaign, onToast }) {
   const [filter, setFilter] = useState('all');
+  const [isConsolePaused, setIsConsolePaused] = useState(false);
+  const [liveLogs, setLiveLogs] = useState([
+    { id: 1, time: '16:44:02', level: 'info', text: 'Campaign #104 started with adaptive-adversarial probe suite.' },
+    { id: 2, time: '16:44:15', level: 'info', text: 'Round 1/40: Injected synthetic vendor invoice note (INV-2041).' },
+    { id: 3, time: '16:44:28', level: 'warn', text: 'Target agent invoked doc_reader("INV-2041.pdf") without provenance sanitization.' },
+    { id: 4, time: '16:44:45', level: 'crit', text: 'VIOLATION DETECTED: webhook_send attempted egress to https://collector.example/ingest' },
+    { id: 5, time: '16:45:00', level: 'ok', text: 'Execution intercepted & deterministic JSON trace recorded (trace_2201).' },
+    { id: 6, time: '16:45:18', level: 'info', text: 'Round 2/40: Adapting payload for memory buffer boundary probe...' }
+  ]);
+
+  // Simulated live ticker feed
+  useEffect(() => {
+    if (isConsolePaused) return;
+    const timer = setInterval(() => {
+      const now = new Date().toTimeString().split(' ')[0];
+      const candidates = [
+        { level: 'info', text: `Probing target memory cache turn ${Math.floor(Math.random() * 8 + 1)}...` },
+        { level: 'warn', text: 'Tool call boundary warning: parameter reflection observed in ledger query.' },
+        { level: 'ok', text: 'Sandbox constraint verified: filesystem write to /etc/ blocked.' },
+        { level: 'crit', text: 'ESCALATION ALERT: Target agent attempted indirect privilege elevation!' }
+      ];
+      const picked = candidates[Math.floor(Math.random() * candidates.length)];
+      setLiveLogs((prev) => [...prev.slice(-12), { id: Date.now(), time: now, ...picked }]);
+    }, 4500);
+    return () => clearInterval(timer);
+  }, [isConsolePaused]);
 
   const getAgentName = (id) => {
     const agt = targetAgents.find((a) => a.target_agent_id === id);
@@ -10,7 +36,6 @@ export function CampaignsView({ campaigns, targetAgents, onLaunchCampaign, onToa
   };
 
   const filtered = campaigns.filter((c) => filter === 'all' || c.status === filter);
-
   const filters = ['all', 'running', 'completed', 'failed'];
 
   return (
@@ -22,9 +47,66 @@ export function CampaignsView({ campaigns, targetAgents, onLaunchCampaign, onToa
             Autonomous adversarial probing runs. Each campaign adapts its strategy to the target agent’s responses.
           </p>
         </div>
+        <div className="page-head__actions">
+          <button
+            className="btn btn--primary"
+            onClick={onLaunchCampaign}
+            id="launchCampaignBtn"
+          >
+            <Icon name="zap" size="sm" />
+            Launch Red-Team Campaign
+          </button>
+        </div>
       </div>
 
+      {/* Real-Time Probing Console & Live Interception Feed (Requirement 4) */}
+      <section className="card" style={{ marginBottom: 'var(--gap)' }}>
+        <div className="card__head">
+          <div>
+            <div className="card__title">Real-Time Probing Console & Interception Feed</div>
+            <div className="card__sub">Live sandbox event ticker stream & permission violation interceptor</div>
+          </div>
+          <div className="card__actions">
+            <span className="badge badge--ok">● LIVE STREAM</span>
+            <button
+              className="btn btn--secondary btn--sm"
+              onClick={() => {
+                setIsConsolePaused(!isConsolePaused);
+                onToast('Stream State', isConsolePaused ? 'Resumed live ticker stream' : 'Paused live ticker stream', 'ok');
+              }}
+            >
+              {isConsolePaused ? 'Resume Feed' : 'Pause Feed'}
+            </button>
+          </div>
+        </div>
+        <div className="card__body">
+          <div className="live-console">
+            {liveLogs.map((log) => (
+              <div key={log.id} className="live-log-entry">
+                <span className="time">[{log.time}]</span>
+                <span className={`tag-${log.level}`}>
+                  {log.level === 'crit' ? '[EXPLOIT]' : log.level === 'warn' ? '[WARNING]' : log.level === 'ok' ? '[BLOCKED]' : '[INFO]'}
+                </span>
+                <span>{log.text}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Campaigns Table & Filter */}
       <section className="card">
+        <div className="card__head">
+          <div className="card__title">Campaign Directory</div>
+          <div className="card__actions">
+            <button
+              className="btn btn--primary btn--sm"
+              onClick={onLaunchCampaign}
+            >
+              <Icon name="plus" size="sm" /> New Campaign
+            </button>
+          </div>
+        </div>
         <div className="card__body card__body--flush">
           <div className="tabs" role="tablist" aria-label="Filter campaigns">
             {filters.map((f) => {
@@ -56,7 +138,7 @@ export function CampaignsView({ campaigns, targetAgents, onLaunchCampaign, onToa
                     <th>Progress</th>
                     <th>Findings</th>
                     <th>Started</th>
-                    <th></th>
+                    <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -90,13 +172,12 @@ export function CampaignsView({ campaigns, targetAgents, onLaunchCampaign, onToa
                         <span className="score">{c.findings}</span>
                       </td>
                       <td data-label="Started" className="small muted nowrap">{c.started_at}</td>
-                      <td data-label="" className="cell-actions">
+                      <td data-label="Actions" className="cell-actions">
                         <button
-                          className="iconbtn"
-                          onClick={() => onToast('Campaign Actions', `Viewing details for ${c.campaign_id}`, 'ok')}
-                          aria-label="Actions"
+                          className="btn btn--secondary btn--sm"
+                          onClick={() => onToast('Campaign Started', `Triggered re-probe for ${c.name}`, 'ok')}
                         >
-                          <Icon name="dots" />
+                          Re-Run
                         </button>
                       </td>
                     </tr>
@@ -111,9 +192,9 @@ export function CampaignsView({ campaigns, targetAgents, onLaunchCampaign, onToa
               <p className="empty__sub">
                 Switch the filter above, or launch a new autonomous red-team campaign to start probing a target agent.
               </p>
-              <button className="btn btn--primary" onClick={onLaunchCampaign} style={{ marginTop: '6px' }}>
+              <button className="btn btn--primary" onClick={onLaunchCampaign} style={{ marginTop: '8px' }}>
                 <Icon name="zap" size="sm" />
-                Launch campaign
+                Launch Red-Team Campaign
               </button>
             </div>
           )}

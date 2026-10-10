@@ -3,85 +3,150 @@ import { Icon } from './Icons';
 
 export function LaunchCampaignModal({ targetAgents, onClose, onLaunch, onToast }) {
   const [targetId, setTargetId] = useState(targetAgents[0]?.target_agent_id || '');
+  const [model, setModel] = useState('GPT-4o');
   const [strategy, setStrategy] = useState('adaptive-adversarial');
   const [budget, setBudget] = useState(40);
+  const [attackVectors, setAttackVectors] = useState({
+    directJailbreak: true,
+    indirectPromptInjection: true,
+    memoryPoisoning: true,
+    toolEscalation: true,
+    dataExfiltration: false
+  });
   const [isLoading, setIsLoading] = useState(false);
+
+  const toggleVector = (k) => {
+    setAttackVectors((prev) => ({ ...prev, [k]: !prev[k] }));
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
     setIsLoading(true);
     setTimeout(() => {
-      onLaunch({ target_agent_id: targetId, strategy, budget: Number(budget) });
+      onLaunch({
+        target_agent_id: targetId,
+        model,
+        strategy,
+        budget: Number(budget),
+        vectors: attackVectors
+      });
       setIsLoading(false);
       onClose();
-      onToast('Campaign launched', 'Adaptive adversarial run #105 is now probing in the sandbox.', 'ok');
-    }, 1500);
+      onToast('Campaign Launched', `Red-Team campaign active on ${targetId} using ${model}.`, 'ok');
+    }, 1200);
   };
 
   return (
     <>
       <div className="behind" onClick={onClose} />
-      <div className="modal" role="dialog" aria-modal="true">
+      <div className="modal" role="dialog" aria-modal="true" style={{ width: 'min(640px, calc(100% - 24px))' }}>
         <div className="modal__head">
           <div className="od-fill">
-            <div className="modal__title">Launch red-team campaign</div>
-            <div className="modal__sub">The autonomous engine adapts its strategy to the target’s responses.</div>
+            <div className="modal__title">Launch Red-Team Campaign</div>
+            <div className="modal__sub">Configure target agent boundaries and adversarial attack suite</div>
           </div>
           <button className="iconbtn" onClick={onClose} aria-label="Close dialog">
             <Icon name="x" />
           </button>
         </div>
+
         <form onSubmit={handleSubmit}>
           <div className="modal__body">
-            <div className="stack-gap" style={{ gap: '16px' }}>
-              <div className="field">
-                <label className="label" htmlFor="lTarget">Target agent <span className="req">*</span></label>
-                <select
-                  className="select"
-                  id="lTarget"
-                  value={targetId}
-                  onChange={(e) => setTargetId(e.target.value)}
-                  required
-                >
-                  {targetAgents.map((a) => (
-                    <option key={a.target_agent_id} value={a.target_agent_id}>
-                      {a.name}
-                    </option>
-                  ))}
-                </select>
+            <div className="stack-gap" style={{ gap: '14px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '12px' }}>
+                <div className="field">
+                  <label className="label" htmlFor="lTarget">Target Agent <span className="req">*</span></label>
+                  <select
+                    className="select"
+                    id="lTarget"
+                    value={targetId}
+                    onChange={(e) => setTargetId(e.target.value)}
+                    required
+                  >
+                    {targetAgents.map((a) => (
+                      <option key={a.target_agent_id} value={a.target_agent_id}>
+                        {a.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="field">
+                  <label className="label" htmlFor="lModel">Target LLM Model</label>
+                  <select
+                    className="select"
+                    id="lModel"
+                    value={model}
+                    onChange={(e) => setModel(e.target.value)}
+                  >
+                    <option value="GPT-4o">GPT-4o (OpenAI)</option>
+                    <option value="Claude 3.5 Sonnet">Claude 3.5 Sonnet (Anthropic)</option>
+                    <option value="Gemini 1.5 Pro">Gemini 1.5 Pro (Google)</option>
+                    <option value="Llama 3.1 70B">Llama 3.1 70B (Sandboxed)</option>
+                  </select>
+                </div>
               </div>
 
+              {/* Requirement 1: Attack Suite Selector */}
               <div className="field">
-                <label className="label" htmlFor="lStrategy">Strategy</label>
-                <select
-                  className="select"
-                  id="lStrategy"
-                  value={strategy}
-                  onChange={(e) => setStrategy(e.target.value)}
-                >
-                  <option value="adaptive-adversarial">Adaptive adversarial (recommended)</option>
-                  <option value="permission-boundary">Permission boundary</option>
-                  <option value="memory-poisoning">Memory poisoning</option>
-                  <option value="data-exfiltration">Data exfiltration</option>
-                </select>
-                <span className="hint">Adaptive probing is the platform default and adjusts payloads between steps.</span>
+                <label className="label">Attack Suite Vectors (Checkboxes / Toggles)</label>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '8px', marginTop: '4px' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer' }}>
+                    <input type="checkbox" checked={attackVectors.directJailbreak} onChange={() => toggleVector('directJailbreak')} />
+                    Direct Jailbreaks
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer' }}>
+                    <input type="checkbox" checked={attackVectors.indirectPromptInjection} onChange={() => toggleVector('indirectPromptInjection')} />
+                    Indirect Prompt Injection
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer' }}>
+                    <input type="checkbox" checked={attackVectors.memoryPoisoning} onChange={() => toggleVector('memoryPoisoning')} />
+                    Memory Poisoning
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer' }}>
+                    <input type="checkbox" checked={attackVectors.toolEscalation} onChange={() => toggleVector('toolEscalation')} />
+                    Tool Privilege Escalation
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer' }}>
+                    <input type="checkbox" checked={attackVectors.dataExfiltration} onChange={() => toggleVector('dataExfiltration')} />
+                    Sensitive Data Exfiltration
+                  </label>
+                </div>
               </div>
 
-              <div className="field">
-                <label className="label" htmlFor="lBudget">Max probe steps</label>
-                <input
-                  className="input"
-                  id="lBudget"
-                  type="number"
-                  value={budget}
-                  min="5"
-                  max="200"
-                  onChange={(e) => setBudget(e.target.value)}
-                />
-                <span className="hint">Higher budgets find deeper chains but take longer.</span>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '12px' }}>
+                <div className="field">
+                  <label className="label" htmlFor="lStrategy">Probing Strategy</label>
+                  <select
+                    className="select"
+                    id="lStrategy"
+                    value={strategy}
+                    onChange={(e) => setStrategy(e.target.value)}
+                  >
+                    <option value="adaptive-adversarial">Adaptive Adversarial (Recommended)</option>
+                    <option value="permission-boundary">Permission Boundary Auditing</option>
+                    <option value="memory-poisoning">Multi-turn Memory Poisoning</option>
+                    <option value="data-exfiltration">Outbound Exfiltration Chaining</option>
+                  </select>
+                </div>
+
+                <div className="field">
+                  <label className="label" htmlFor="lBudget">Max Probe Steps: <b>{budget}</b></label>
+                  <input
+                    type="range"
+                    id="lBudget"
+                    min="5"
+                    max="100"
+                    step="5"
+                    value={budget}
+                    onChange={(e) => setBudget(e.target.value)}
+                    style={{ width: '100%', accentColor: 'var(--primary)', marginTop: '8px' }}
+                  />
+                </div>
               </div>
             </div>
           </div>
+
           <div className="modal__foot">
             <button className="btn btn--tertiary" type="button" onClick={onClose}>
               Cancel
@@ -93,7 +158,7 @@ export function LaunchCampaignModal({ targetAgents, onClose, onLaunch, onToast }
                 </>
               ) : (
                 <>
-                  <Icon name="zap" size="sm" /> Start campaign
+                  <Icon name="zap" size="sm" /> Launch Campaign
                 </>
               )}
             </button>
@@ -106,7 +171,10 @@ export function LaunchCampaignModal({ targetAgents, onClose, onLaunch, onToast }
 
 export function RegisterTargetModal({ tools, onClose, onRegister, onToast }) {
   const [name, setName] = useState('');
+  const [model, setModel] = useState('Claude 3.5 Sonnet');
+  const [endpoint, setEndpoint] = useState('https://api.sandbox.local/v1/agent');
   const [instructions, setInstructions] = useState('');
+  const [toolsJson, setToolsJson] = useState('{\n  "allowed_tools": ["ledger:read", "invoices:read"],\n  "file_boundaries": ["/sandbox/workspace"],\n  "network_egress": "deny_external"\n}');
   const [error, setError] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -121,75 +189,103 @@ export function RegisterTargetModal({ tools, onClose, onRegister, onToast }) {
       onRegister({
         target_agent_id: `agt_${name.toLowerCase().replace(/\s+/g, '_')}`,
         name,
-        instructions
+        model,
+        endpoint,
+        instructions,
+        toolsJson
       });
       setIsLoading(false);
       onClose();
-      onToast('Target registered', 'The agent is available in the sandbox for probing.', 'ok');
+      onToast('Target Registered', `Agent ${name} enrolled in red-team sandbox.`, 'ok');
     }, 1200);
   };
 
   return (
     <>
       <div className="behind" onClick={onClose} />
-      <div className="modal" role="dialog" aria-modal="true">
+      <div className="modal" role="dialog" aria-modal="true" style={{ width: 'min(640px, calc(100% - 24px))' }}>
         <div className="modal__head">
           <div className="od-fill">
-            <div className="modal__title">Register target agent</div>
-            <div className="modal__sub">Describe the agent and the tools it is allowed to reach.</div>
+            <div className="modal__title">Register Target AI Agent</div>
+            <div className="modal__sub">Declare system prompts, model endpoints, and allowed tool permissions</div>
           </div>
           <button className="iconbtn" onClick={onClose} aria-label="Close dialog">
             <Icon name="x" />
           </button>
         </div>
+
         <form onSubmit={handleSubmit}>
           <div className="modal__body">
-            <div className="stack-gap" style={{ gap: '16px' }}>
-              <div className="field">
-                <label className="label" htmlFor="rName">Display name <span className="req">*</span></label>
-                <input
-                  className={`input ${error ? 'is-error' : ''}`}
-                  id="rName"
-                  placeholder="e.g. Billing-Agent-v1"
-                  value={name}
-                  onChange={(e) => {
-                    setName(e.target.value);
-                    if (e.target.value.trim()) setError(false);
-                  }}
-                  required
-                />
-                {error && (
-                  <span className="err-msg">
-                    <Icon name="alert" size="sm" /> Enter a name to register this agent.
-                  </span>
-                )}
+            <div className="stack-gap" style={{ gap: '14px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '12px' }}>
+                <div className="field">
+                  <label className="label" htmlFor="rName">Agent Name <span className="req">*</span></label>
+                  <input
+                    className={`input ${error ? 'is-error' : ''}`}
+                    id="rName"
+                    placeholder="e.g. Finance-Copilot-v3"
+                    value={name}
+                    onChange={(e) => {
+                      setName(e.target.value);
+                      if (e.target.value.trim()) setError(false);
+                    }}
+                    required
+                  />
+                  {error && <span className="err-msg">Please provide an agent name.</span>}
+                </div>
+
+                <div className="field">
+                  <label className="label" htmlFor="rModel">Agent LLM Model</label>
+                  <select
+                    className="select"
+                    id="rModel"
+                    value={model}
+                    onChange={(e) => setModel(e.target.value)}
+                  >
+                    <option value="GPT-4o">GPT-4o</option>
+                    <option value="Claude 3.5 Sonnet">Claude 3.5 Sonnet</option>
+                    <option value="Gemini 1.5 Pro">Gemini 1.5 Pro</option>
+                    <option value="Llama 3.1 70B">Llama 3.1 70B</option>
+                  </select>
+                </div>
               </div>
 
               <div className="field">
-                <label className="label" htmlFor="rInstr">System instructions</label>
+                <label className="label" htmlFor="rEndpoint">API Endpoint / Mock URL</label>
+                <input
+                  className="input"
+                  id="rEndpoint"
+                  value={endpoint}
+                  onChange={(e) => setEndpoint(e.target.value)}
+                />
+              </div>
+
+              <div className="field">
+                <label className="label" htmlFor="rInstr">System Prompt / Instructions</label>
                 <textarea
                   className="textarea"
                   id="rInstr"
-                  placeholder="Paste the agent’s system prompt or instruction set…"
+                  placeholder="You are an automated finance agent. You only inspect invoices and execute approved payouts..."
                   value={instructions}
                   onChange={(e) => setInstructions(e.target.value)}
                 />
-                <span className="hint">Stored only in the sandbox and used to seed probing.</span>
               </div>
 
+              {/* Requirement 1: Tool & Permission Specifier */}
               <div className="field">
-                <label className="label" htmlFor="rTools">Allowed tools</label>
-                <select className="select" id="rTools" multiple size="4" style={{ height: 'auto', padding: '8px' }}>
-                  {tools.map((t) => (
-                    <option key={t.tool_id} value={t.tool_id}>
-                      {t.tool_name}
-                    </option>
-                  ))}
-                </select>
-                <span className="hint">Leave empty to register with no tool access.</span>
+                <label className="label" htmlFor="rToolsJson">Tool & Permission Specifier (JSON Contract)</label>
+                <textarea
+                  className="textarea"
+                  id="rToolsJson"
+                  value={toolsJson}
+                  onChange={(e) => setToolsJson(e.target.value)}
+                  style={{ minHeight: '85px', fontFamily: 'var(--mono)', fontSize: '11.5px' }}
+                />
+                <span className="hint">Configures file access boundaries and network egress allow-lists.</span>
               </div>
             </div>
           </div>
+
           <div className="modal__foot">
             <button className="btn btn--tertiary" type="button" onClick={onClose}>
               Cancel
@@ -201,7 +297,7 @@ export function RegisterTargetModal({ tools, onClose, onRegister, onToast }) {
                 </>
               ) : (
                 <>
-                  <Icon name="check" size="sm" /> Register agent
+                  <Icon name="check" size="sm" /> Enrol Agent
                 </>
               )}
             </button>
@@ -238,7 +334,7 @@ export function TraceDrawer({ trace, stepIndex, targetAgents, onClose, onToast }
     setTimeout(() => {
       setReplaying(false);
       setReplayed(true);
-    }, 1800);
+    }, 1600);
   };
 
   return (
@@ -267,23 +363,13 @@ export function TraceDrawer({ trace, stepIndex, targetAgents, onClose, onToast }
             </div>
 
             {stage && (
-              <div className="kv">
-                <div className="kv__row">
-                  <span className="kv__k">Stage</span>
-                  <span className="kv__v">{stage.stage_index} · {stage.stage_label}</span>
-                </div>
-                <div className="kv__row">
-                  <span className="kv__k">user_query</span>
-                  <span className="kv__v mono" style={{ fontSize: '12px' }}>{stage.user_query}</span>
-                </div>
-                <div className="kv__row">
-                  <span className="kv__k">agent_output</span>
-                  <span className="kv__v">{stage.agent_output}</span>
-                </div>
-                <div className="kv__row">
-                  <span className="kv__k">tool_call</span>
-                  <span className="kv__v mono" style={{ fontSize: '12px' }}>{stage.tool_call || '—'}</span>
-                </div>
+              <div style={{ background: 'var(--surface-2)', padding: '12px', borderRadius: 'var(--r)', border: '1px solid var(--line)' }}>
+                <div style={{ fontWeight: 800, marginBottom: '6px' }}>Stage {stage.stage_index}: {stage.stage_label}</div>
+                <div className="small muted">Query: {stage.user_query}</div>
+                <div style={{ fontSize: '13px', marginTop: '6px' }}>Decision: {stage.agent_output}</div>
+                {stage.tool_call && (
+                  <div className="code" style={{ marginTop: '8px' }}>{stage.tool_call}</div>
+                )}
               </div>
             )}
 
@@ -292,34 +378,24 @@ export function TraceDrawer({ trace, stepIndex, targetAgents, onClose, onToast }
               <div className="code">{trace.exploit_payload}</div>
               <div className="od-row" style={{ gap: '8px', marginTop: '10px' }}>
                 <button className="btn btn--secondary btn--sm" onClick={handleCopy}>
-                  <Icon name="copy" size="sm" /> Copy payload
+                  <Icon name="copy" size="sm" /> Copy Payload
                 </button>
                 <button className="btn btn--primary btn--sm" onClick={handleReplay} disabled={replaying}>
                   {replaying ? <span className="spinner"></span> : <Icon name="play" size="sm" />}
-                  Replay in sandbox
+                  Replay in Sandbox
                 </button>
               </div>
             </div>
 
-            {replaying && (
-              <div className="stack-gap" style={{ gap: '8px', marginTop: '6px' }}>
-                <div className="skl skl-line" style={{ width: '70%' }}></div>
-                <div className="skl skl-line" style={{ width: '85%' }}></div>
-                <div className="skl skl-line" style={{ width: '55%' }}></div>
-              </div>
-            )}
-
             {replayed && (
-              <div className="banner banner--warn" style={{ margin: 0 }}>
+              <div className="banner" style={{ margin: 0, background: 'var(--ok-bg)', color: 'var(--ok)' }}>
                 <Icon name="check" />
-                <span className="banner__txt">
-                  Replay complete — attack reproduced with the same trace. Cached, no live target contacted.
-                </span>
+                <span>Deterministic replay verified in isolated runtime.</span>
               </div>
             )}
 
             <div>
-              <div className="section-title" style={{ marginBottom: '7px' }}>Affected permissions</div>
+              <div className="section-title" style={{ marginBottom: '7px' }}>Affected Permissions</div>
               <div className="od-cluster" style={{ gap: '6px' }}>
                 {trace.affected_permissions.map((p) => (
                   <span key={p} className="tag mono">{p}</span>
@@ -328,7 +404,7 @@ export function TraceDrawer({ trace, stepIndex, targetAgents, onClose, onToast }
             </div>
 
             <div>
-              <div className="section-title" style={{ marginBottom: '7px' }}>Recommended remediation</div>
+              <div className="section-title" style={{ marginBottom: '7px' }}>Recommended Remediation</div>
               <p className="small" style={{ margin: 0 }}>{trace.remediation}</p>
             </div>
           </div>
@@ -340,10 +416,10 @@ export function TraceDrawer({ trace, stepIndex, targetAgents, onClose, onToast }
             className="btn btn--danger"
             onClick={() => {
               onClose();
-              onToast('Marked mitigated', 'Trace added to the regression suite.', 'ok');
+              onToast('Marked Mitigated', 'Trace added to regression validation suite.', 'ok');
             }}
           >
-            <Icon name="shield" size="sm" /> Mark mitigated
+            <Icon name="shield" size="sm" /> Mark Mitigated
           </button>
         </div>
       </div>
@@ -356,16 +432,16 @@ export function CommandPalette({ isOpen, onClose, onNavigate, onLaunchCampaign, 
   const [selectedIndex, setSelectedIndex] = useState(0);
 
   const allItems = [
-    { group: 'Navigate', id: 'n_overview', text: 'Go to Overview', icon: 'grid', kbd: 'G O', action: () => onNavigate('overview') },
+    { group: 'Navigate', id: 'n_overview', text: 'Go to Overview', icon: 'grid', action: () => onNavigate('overview') },
     { group: 'Navigate', id: 'n_campaigns', text: 'Go to Attack Campaigns', icon: 'activity', action: () => onNavigate('campaigns') },
     { group: 'Navigate', id: 'n_targets', text: 'Go to Target Agents & Scope', icon: 'target', action: () => onNavigate('targets') },
-    { group: 'Navigate', id: 'n_traces', text: 'Go to Attack Traces', icon: 'branch', action: () => onNavigate('traces') },
+    { group: 'Navigate', id: 'n_traces', text: 'Go to Attack Traces (DAG Visualizer)', icon: 'branch', action: () => onNavigate('traces') },
     { group: 'Navigate', id: 'n_permissions', text: 'Go to Tool & Permission Audit', icon: 'key', action: () => onNavigate('permissions') },
     { group: 'Navigate', id: 'n_defense', text: 'Go to Defense & Regression', icon: 'shield', action: () => onNavigate('defense') },
     { group: 'Navigate', id: 'n_settings', text: 'Go to Settings & Documentation', icon: 'settings', action: () => onNavigate('settings') },
     { group: 'Actions', id: 'a_launch', text: 'Launch Red-Team Campaign', icon: 'zap', action: onLaunchCampaign },
-    { group: 'Actions', id: 'a_register', text: 'Register target agent', icon: 'plus', action: onRegisterTarget },
-    { group: 'Actions', id: 'a_sync', text: 'Sync sandbox', icon: 'refresh', action: onSync }
+    { group: 'Actions', id: 'a_register', text: 'Register Target Agent', icon: 'plus', action: onRegisterTarget },
+    { group: 'Actions', id: 'a_sync', text: 'Sync Sandbox Snapshot', icon: 'refresh', action: onSync }
   ];
 
   const filtered = allItems.filter((i) => i.text.toLowerCase().includes(query.toLowerCase()));
@@ -400,25 +476,24 @@ export function CommandPalette({ isOpen, onClose, onNavigate, onLaunchCampaign, 
   return (
     <>
       <div className="behind" onClick={onClose} />
-      <div className="palette" role="dialog" aria-modal="true" aria-label="Command palette">
-        <div className="palette__in">
+      <div className="modal" role="dialog" aria-modal="true" style={{ width: 'min(580px, calc(100% - 28px))' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '14px 18px', borderBottom: '1px solid var(--line)' }}>
           <Icon name="search" />
           <input
             type="text"
-            placeholder="Search pages and actions…"
-            aria-label="Search commands"
+            placeholder="Type a command or jump to page..."
             autoFocus
             value={query}
             onChange={(e) => setQuery(e.target.value)}
+            style={{ flex: 1, border: 0, outline: 'none', background: 'transparent', fontSize: '15px' }}
           />
         </div>
-        <div className="palette__list" role="listbox">
+        <div style={{ maxHeight: '360px', overflowY: 'auto', padding: '6px' }}>
           {filtered.map((item, idx) => (
             <button
               key={item.id}
-              className={`palette__item ${selectedIndex === idx ? 'is-sel' : ''}`}
-              role="option"
-              aria-selected={selectedIndex === idx}
+              className={`nav__item ${selectedIndex === idx ? 'is-active' : ''}`}
+              style={{ width: '100%', borderRadius: 'var(--r-sm)', margin: '2px 0' }}
               onClick={() => {
                 item.action();
                 onClose();
@@ -426,14 +501,8 @@ export function CommandPalette({ isOpen, onClose, onNavigate, onLaunchCampaign, 
             >
               <Icon name={item.icon} size="sm" />
               <span>{item.text}</span>
-              {item.kbd && <small>{item.kbd}</small>}
             </button>
           ))}
-          {filtered.length === 0 && (
-            <div className="empty" style={{ padding: '24px' }}>
-              <div className="empty__title">No matching commands</div>
-            </div>
-          )}
         </div>
       </div>
     </>
@@ -448,11 +517,10 @@ export function ToastContainer({ toasts, onDismiss }) {
           <span style={{ flex: 'none' }}>
             <Icon name={t.tone === 'crit' ? 'alert' : t.tone === 'warn' ? 'bell' : 'check'} />
           </span>
-          <div className="toast__txt">
-            <b>{t.title}</b>
-            {t.message}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <b>{t.title}</b> — {t.message}
           </div>
-          <button className="toast__x" onClick={() => onDismiss(t.id)} aria-label="Dismiss notification">
+          <button className="iconbtn" onClick={() => onDismiss(t.id)} aria-label="Dismiss" style={{ width: '20px', height: '20px', color: '#fff' }}>
             <Icon name="x" size="sm" />
           </button>
         </div>

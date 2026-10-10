@@ -3,11 +3,17 @@ import { Icon } from './Icons';
 
 export function OverviewView({ overview, activity, targetAgents, onNavigate, onSync, onToast }) {
   const sb = overview.severity_breakdown;
+
+  // Enforced Donut Palette:
+  // Segment 1 (Critical): #F5580A
+  // Segment 2 (High): #F99D45
+  // Segment 3 (Medium): #B4D5E0
+  // Segment 4 (Low / Baseline): #4E90A8
   const segs = [
-    { label: 'Critical', value: sb.critical, color: '#B42318' },
-    { label: 'High', value: sb.high, color: '#C77A17' },
-    { label: 'Medium', value: sb.medium, color: '#D9A93B' },
-    { label: 'Low', value: sb.low, color: '#8C8880' }
+    { label: 'Critical', value: sb.critical, color: '#F5580A' },
+    { label: 'High', value: sb.high, color: '#F99D45' },
+    { label: 'Medium', value: sb.medium, color: '#B4D5E0' },
+    { label: 'Low', value: sb.low, color: '#4E90A8' }
   ];
 
   const getAgentName = (id) => {
@@ -15,7 +21,7 @@ export function OverviewView({ overview, activity, targetAgents, onNavigate, onS
     return agt ? agt.name : id;
   };
 
-  const renderSparkline = (vals, color = '#C4684A') => {
+  const renderSparkline = (vals, color = '#F5580A') => {
     const w = 128, h = 30;
     const max = Math.max(...vals), min = Math.min(...vals), range = (max - min) || 1;
     const pts = vals
@@ -28,12 +34,12 @@ export function OverviewView({ overview, activity, targetAgents, onNavigate, onS
 
     return (
       <svg className="ic metric__spark" viewBox={`0 0 ${w} ${h}`} width={w} height={h} aria-hidden="true" preserveAspectRatio="none">
-        <polyline fill="none" stroke={color} strokeWidth="2" points={pts} strokeLinecap="round" strokeLinejoin="round" />
+        <polyline fill="none" stroke={color} strokeWidth="2.2" points={pts} strokeLinecap="round" strokeLinejoin="round" />
       </svg>
     );
   };
 
-  const renderDonut = (segments, size = 150, stroke = 20) => {
+  const renderDonut = (segments, size = 150, stroke = 22) => {
     const r = (size - stroke) / 2;
     const c = 2 * Math.PI * r;
     const total = segments.reduce((acc, s) => acc + s.value, 0) || 1;
@@ -75,12 +81,12 @@ export function OverviewView({ overview, activity, targetAgents, onNavigate, onS
       <svg className="chart" viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" role="img" aria-label="Simulated attacks started per day">
         <defs>
           <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stopColor="#C4684A" stopOpacity=".22" />
-            <stop offset="1" stopColor="#C4684A" stopOpacity="0" />
+            <stop offset="0" stopColor="#F5580A" stopOpacity=".2" />
+            <stop offset="1" stopColor="#F5580A" stopOpacity="0" />
           </linearGradient>
         </defs>
         <path d={area} fill="url(#areaGrad)" />
-        <polyline points={line} fill="none" stroke="#C4684A" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+        <polyline points={line} fill="none" stroke="#F5580A" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
     );
   };
@@ -115,7 +121,7 @@ export function OverviewView({ overview, activity, targetAgents, onNavigate, onS
           </div>
           <div className="metric__value">{overview.discovered_exploits}</div>
           <div className="metric__label">Discovered exploits</div>
-          <div className="metric__foot">{renderSparkline(overview.exploits_spark, '#B42318')}</div>
+          <div className="metric__foot">{renderSparkline(overview.exploits_spark, '#F5580A')}</div>
         </article>
 
         <article className="card metric">
@@ -125,7 +131,7 @@ export function OverviewView({ overview, activity, targetAgents, onNavigate, onS
           </div>
           <div className="metric__value">{overview.tool_escalation_alerts}</div>
           <div className="metric__label">Tool escalation alerts</div>
-          <div className="metric__foot">{renderSparkline(overview.escalations_spark, '#9A5B09')}</div>
+          <div className="metric__foot">{renderSparkline(overview.escalations_spark, '#F99D45')}</div>
         </article>
 
         <article className="card metric">
@@ -135,7 +141,7 @@ export function OverviewView({ overview, activity, targetAgents, onNavigate, onS
           </div>
           <div className="metric__value">{Math.round(overview.defense_mitigation_rate * 100)}%</div>
           <div className="metric__label">Defense mitigation rate</div>
-          <div className="metric__foot">{renderSparkline(overview.mitigation_spark, '#07703F')}</div>
+          <div className="metric__foot">{renderSparkline(overview.mitigation_spark, '#2F7D4F')}</div>
         </article>
 
         <article className="card metric">
@@ -145,7 +151,7 @@ export function OverviewView({ overview, activity, targetAgents, onNavigate, onS
           </div>
           <div className="metric__value">{(overview.sandbox_execution_health * 100).toFixed(1)}%</div>
           <div className="metric__label">Sandbox execution health</div>
-          <div className="metric__foot">{renderSparkline([1, 1, 1, 1, .999, .999, 1, 1, 1, .998, .999, .995], '#C4684A')}</div>
+          <div className="metric__foot">{renderSparkline([1, 1, 1, 1, .999, .999, 1, 1, 1, .998, .999, .995], '#4E90A8')}</div>
         </article>
       </div>
 
@@ -161,7 +167,7 @@ export function OverviewView({ overview, activity, targetAgents, onNavigate, onS
           <div className="card__body">
             <div className="donut-wrap">
               <svg width="150" height="150" viewBox="0 0 150 150" role="img">
-                {renderDonut(segs, 150, 20)}
+                {renderDonut(segs, 150, 22)}
                 <text x="75" y="71" textAnchor="middle" fontSize="26" fontWeight="800" fill="#1C1B18">
                   {sb.critical + sb.high + sb.medium + sb.low}
                 </text>
@@ -185,7 +191,7 @@ export function OverviewView({ overview, activity, targetAgents, onNavigate, onS
         <section className="card">
           <div className="card__head">
             <div>
-              <div className="card__title">Attack volume</div>
+              <div className="card__title">Attack volume trend</div>
               <div className="card__sub">Simulated attacks started per day · last 14 days</div>
             </div>
           </div>
@@ -261,11 +267,6 @@ export function OverviewView({ overview, activity, targetAgents, onNavigate, onS
                 ))}
               </tbody>
             </table>
-          </div>
-          <div className="pager">
-            <span className="pager__txt">Showing 1–{activity.length} of {activity.length}</span>
-            <button className="pager__btn" disabled aria-label="Previous page"><Icon name="chevleft" size="sm" /></button>
-            <button className="pager__btn" disabled aria-label="Next page"><Icon name="chevright" size="sm" /></button>
           </div>
         </div>
       </section>
