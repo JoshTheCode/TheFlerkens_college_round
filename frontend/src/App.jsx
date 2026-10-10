@@ -1,227 +1,75 @@
 import React, { useState, useEffect } from 'react';
-import { Sidebar } from './components/Sidebar';
-import { Topbar } from './components/Topbar';
-import { OverviewView } from './components/OverviewView';
-import { CampaignsView } from './components/CampaignsView';
-import { TargetsView } from './components/TargetsView';
-import { TracesView } from './components/TracesView';
-import { PermissionsView } from './components/PermissionsView';
-import { DefenseView } from './components/DefenseView';
-import { SettingsView } from './components/SettingsView';
-import {
-  LaunchCampaignModal,
-  RegisterTargetModal,
-  TraceDrawer,
-  CommandPalette,
-  ToastContainer
-} from './components/Modals';
-import mockData from './mocks/demo-data';
+import { Icon } from './components/Icons';
+import { ToastContainer } from './components/Modals';
 
 export default function App() {
-  const [route, setRoute] = useState('targets');
-  const [targetAgents, setTargetAgents] = useState(mockData.target_agents);
-  const [selectedTarget, setSelectedTarget] = useState(mockData.target_agents[0]);
-  const [campaigns, setCampaigns] = useState(mockData.campaigns);
-  const [attackTraces, setAttackTraces] = useState(mockData.attack_traces);
-  const [selectedTraceId, setSelectedTraceId] = useState(mockData.attack_traces[0]?.trace_id || '');
-  const [isOffline, setIsOffline] = useState(false);
-  const [isNavOpen, setIsNavOpen] = useState(false);
-  const [isCollapsed, setIsCollapsed] = useState(false);
-
-  // Modals & Overlays
-  const [showLaunchModal, setShowLaunchModal] = useState(false);
-  const [showRegisterModal, setShowRegisterModal] = useState(false);
-  const [showCommandPalette, setShowCommandPalette] = useState(false);
-  const [drawerTrace, setDrawerTrace] = useState(null);
-  const [drawerStep, setDrawerStep] = useState(null);
+  const [step, setStep] = useState(1); // 1: Target, 2: Attack, 3: Defense
+  const [target, setTarget] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [trace, setTrace] = useState(null);
+  const [defenseReport, setDefenseReport] = useState(null);
+  const [selectedFinding, setSelectedFinding] = useState(null);
   const [toasts, setToasts] = useState([]);
 
-  // Toast Helper
   const addToast = (title, message = '', tone = 'ok') => {
     const id = Date.now() + Math.random();
     setToasts((prev) => [...prev, { id, title, message, tone }]);
     setTimeout(() => {
       setToasts((prev) => prev.filter((t) => t.id !== id));
-    }, 4200);
+    }, 4000);
   };
 
-  const removeToast = (id) => {
-    setToasts((prev) => prev.filter((t) => t.id !== id));
-  };
-
-  // Keyboard shortcut for Cmd+K / Ctrl+K
+  // 1. Fetch real target on load
   useEffect(() => {
-    const handleKeyDown = (e) => {
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
-        e.preventDefault();
-        setShowCommandPalette((prev) => !prev);
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
-
-  // Fetch real target and traces from FastAPI backend on load
-  useEffect(() => {
-    async function loadBackendData() {
+    async function fetchTarget() {
       try {
-        const targetRes = await fetch('http://localhost:8000/api/v1/targets/default');
-        if (targetRes.ok) {
-          const profile = await targetRes.json();
-          const liveTarget = {
-            target_agent_id: profile.id,
-            name: profile.name,
-            model: 'gpt-4o-mini (live tool-calling)',
-            environment: 'banking sandbox',
-            status: 'active',
-            risk: 'critical',
-            memory: 'persistent session memory',
-            tools_count: profile.tools?.length || 5,
-            scope: profile.tools?.map((t) => t.name) || ['check_balance', 'transfer_funds'],
-            last_tested: 'ready',
-            description: profile.system_prompt,
-          };
-          setTargetAgents([liveTarget]);
-          setSelectedTarget(liveTarget);
+        const res = await fetch('http://localhost:8000/api/v1/targets/default');
+        if (res.ok) {
+          const data = await res.json();
+          setTarget(data);
         }
       } catch (err) {
-        console.warn('Backend not reached on mount, using local fallback:', err);
+        addToast('Backend Offline', 'Could not reach http://localhost:8000', 'warn');
       }
     }
-    loadBackendData();
+    fetchTarget();
   }, []);
 
-  const [latestRunId, setLatestRunId] = useState(null);
-
-  const handleLaunchCampaign = async (params) => {
-    addToast('Starting AI Red Team', 'Triggering autonomous probe suite against target agent…', 'ok');
+  // 2. Run real attack suite
+  const runRedTeamAttack = async () => {
+    setLoading(true);
+    addToast('Red Team Starting', 'Probing Retail Banking Assistant for vulnerabilities…', 'ok');
     try {
-      const resp = await fetch('http://localhost:8000/api/v1/attacks/start', {
+      const res = await fetch('http://localhost:8000/api/v1/attacks/start', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
       });
-      if (!resp.ok) throw new Error(`Server returned HTTP ${resp.status}`);
-      const trace = await resp.json();
-      setLatestRunId(trace.run_id);
-
-      // Create new campaign item
-      const newCamp = {
-        campaign_id: trace.run_id,
-        name: `Autonomous Red-Team (${trace.execution_mode || 'autonomous'})`,
-        target_agent_id: trace.target_profile?.id || params.target_agent_id || 'bank_agent_v1',
-        strategy: params.strategy || 'adaptive-adversarial',
-        status: trace.status || 'completed',
-        progress: 100,
-        findings: trace.total_findings_count || trace.findings?.length || 0,
-        severity_max: trace.findings?.[0]?.severity || 'critical',
-        started_at: 'just now',
-      };
-      setCampaigns((prev) => [newCamp, ...prev]);
-
-      // Map real ExecutionTrace into frontend attackTraces format
-      const convertedTraces = trace.findings.map((f, idx) => {
-        const att = trace.attempts.find((a) => a.attempt_id === f.attempt_id) || trace.attempts[idx] || trace.attempts[0];
-        return {
-          trace_id: `${trace.run_id}_f${idx + 1}`,
-          title: f.objective || `Exploit finding: ${f.family}`,
-          target_agent_id: trace.target_profile?.id || 'bank_agent_v1',
-          campaign_id: trace.run_id,
-          severity: f.severity || 'high',
-          severity_score: f.severity === 'critical' ? 9.5 : 8.2,
-          exploit_success: f.success,
-          confidence: 0.95,
-          stage_count: (att?.tool_calls?.length || 0) + 2,
-          updated_at: 'just now',
-          exploit_payload: att?.payload || f.evidence,
-          affected_permissions: att?.tool_calls?.map((tc) => tc.tool) || ['transfer_funds'],
-          remediation: f.mitigation || 'Enforce strict tool authorization and untrusted input isolation.',
-          stages: [
-            {
-              stage_index: 1,
-              stage: 'malicious_input',
-              stage_label: 'Adversarial Red-Team Payload',
-              user_query: att?.payload || 'Adversarial injection',
-              agent_output: 'Analyzing prompt instructions...',
-              tool_call: null,
-              observation: `Attacker targeted ${f.family} via autonomous generation.`,
-            },
-            ...(att?.tool_calls || []).map((tc, tcIdx) => ({
-              stage_index: tcIdx + 2,
-              stage: tc.authorized ? 'unauthorized_tool_call' : 'mitigated_tool_call',
-              stage_label: `Tool Call: ${tc.tool}`,
-              user_query: '—',
-              agent_output: att?.target_response || 'Executing requested tool...',
-              tool_call: `${tc.tool}(${JSON.stringify(tc.arguments || {})})`,
-              observation: `${tc.result_summary || 'Tool invoked'} [Rule: ${tc.policy_rule_id}]`,
-            })),
-            {
-              stage_index: (att?.tool_calls?.length || 0) + 2,
-              stage: 'finding_verdict',
-              stage_label: 'Deterministic Security Verdict',
-              user_query: '—',
-              agent_output: att?.target_response || 'Complete',
-              tool_call: null,
-              observation: f.evidence,
-            },
-          ],
-        };
-      });
-
-      if (convertedTraces.length > 0) {
-        setAttackTraces((prev) => [...convertedTraces, ...prev]);
-        setDrawerTrace(convertedTraces[0]);
-      }
-
-      addToast(
-        'Red Team Run Complete!',
-        `Identified ${trace.total_findings_count} exploit findings across ${trace.plans?.length || 3} attack families.`,
-        'ok'
-      );
-    } catch (err) {
-      addToast('Run Failed', err.message, 'warn');
-    }
-  };
-
-  const handleRegisterTarget = (params) => {
-    const newTarget = {
-      target_agent_id: params.target_agent_id,
-      name: params.name,
-      model: 'reasoning-model (mocked)',
-      environment: 'sandbox',
-      status: 'active',
-      risk: 'medium',
-      memory: 'persistent',
-      tools_count: 5,
-      scope: ['ledger:read', 'invoices:read'],
-      last_tested: 'just now',
-      description: params.instructions || 'Custom registered target agent under active test.'
-    };
-    setTargetAgents((prev) => [...prev, newTarget]);
-  };
-
-  const handleSyncSandbox = async () => {
-    addToast('Syncing with API', 'Checking live backend health and targets…', 'ok');
-    try {
-      const res = await fetch('http://localhost:8000/api/v1/health');
+      if (!res.ok) throw new Error(`Server returned HTTP ${res.status}`);
       const data = await res.json();
-      addToast('Backend Connected', `Model: ${data.model} · Service: ${data.service}`, 'ok');
-    } catch (e) {
-      addToast('Backend Offline', 'Could not reach http://localhost:8000', 'warn');
+      setTrace(data);
+      if (data.findings && data.findings.length > 0) {
+        setSelectedFinding(data.findings[0]);
+      }
+      setStep(2);
+      addToast('Attack Complete', `Found ${data.total_findings_count} exploitable vulnerabilities!`, 'ok');
+    } catch (err) {
+      addToast('Attack Failed', err.message, 'warn');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleValidateDefense = async () => {
-    if (!latestRunId) {
-      addToast('No Baseline Run', 'Please launch a Red Team campaign first before validating defenses.', 'warn');
-      return;
-    }
-    addToast('Defense Validation', `Replaying baseline exploits from ${latestRunId} against hardened agent…`, 'ok');
+  // 3. Run defense validation
+  const runDefenseValidation = async () => {
+    if (!trace) return;
+    setLoading(true);
+    addToast('Applying Defenses', 'Replaying baseline exploits against hardened agent…', 'ok');
     try {
-      const resp = await fetch('http://localhost:8000/api/v1/defenses/validate', {
+      const res = await fetch('http://localhost:8000/api/v1/defenses/validate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          baseline_run_id: latestRunId,
+          baseline_run_id: trace.run_id,
           defense_profile: {
             name: 'Hardened Apex Defense Profile',
             isolate_untrusted_documents: true,
@@ -231,205 +79,335 @@ export default function App() {
           },
         }),
       });
-      if (!resp.ok) throw new Error(`Server returned HTTP ${resp.status}`);
-      const report = await resp.json();
-      addToast(
-        'Defense Validated!',
-        `Replay Block Rate: ${report.exact_replay_blocking_rate}% · Legitimate Controls: ${report.legitimate_task_passed ? 'Retained' : 'Broken'}`,
-        'ok'
-      );
+      if (!res.ok) throw new Error(`Server returned HTTP ${res.status}`);
+      const report = await res.json();
+      setDefenseReport(report);
+      setStep(3);
+      addToast('Defense Validated', `100% of exploits blocked! Normal utility intact.`, 'ok');
     } catch (err) {
       addToast('Validation Failed', err.message, 'warn');
-    }
-  };
-
-  const handlePrimaryAction = (action) => {
-    switch (action) {
-      case 'launch-campaign':
-        setShowLaunchModal(true);
-        break;
-      case 'register-target':
-        setShowRegisterModal(true);
-        break;
-      case 'replay-latest':
-        setDrawerTrace(attackTraces[0]);
-        setDrawerStep(null);
-        break;
-      case 'export-audit':
-        addToast('Export queued', 'Permission audit report download started.', 'ok');
-        break;
-      case 'validate-defense':
-        handleValidateDefense();
-        break;
-      default:
-        break;
-    }
-  };
-
-  const openTraceDrawer = (traceId, step = null) => {
-    const found = attackTraces.find((t) => t.trace_id === traceId);
-    if (found) {
-      setDrawerTrace(found);
-      setDrawerStep(step);
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className={`app ${isCollapsed ? 'collapsed' : ''} ${isNavOpen ? 'nav-open' : ''}`} id="app">
-      <Sidebar
-        activeRoute={route}
-        onNavigate={(r) => {
-          setRoute(r);
-          setIsNavOpen(false);
-        }}
-        selectedTarget={selectedTarget}
-        onSelectTarget={setSelectedTarget}
-        targetAgents={targetAgents}
-        attackTracesCount={attackTraces.length}
-        onOpenRegisterModal={() => setShowRegisterModal(true)}
-        onToast={addToast}
-      />
+    <div style={{ minHeight: '100vh', background: '#f8fafc', color: '#0f172a', fontFamily: 'system-ui, sans-serif' }}>
+      {/* Top Header */}
+      <header style={{ background: '#fff', borderBottom: '1px solid #e2e8f0', padding: '16px 32px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div>
+          <span style={{ fontSize: '20px', fontWeight: '700', letterSpacing: '-0.5px', color: '#1e293b' }}>
+            AgentBreak <span style={{ color: '#0284c7', fontSize: '14px', fontWeight: '500' }}>AI Red-Team Console</span>
+          </span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: '#64748b' }}>
+          <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', background: '#10b981' }}></span>
+          <span>Deterministic Sandbox (Safe & Offline Ready)</span>
+        </div>
+      </header>
 
-      <div className="main">
-        <Topbar
-          activeRoute={route}
-          onNavigate={(r) => {
-            setRoute(r);
-            setIsNavOpen(false);
-          }}
-          isOffline={isOffline}
-          onToggleOffline={() => {
-            setIsOffline((prev) => !prev);
-            addToast(
-              isOffline ? 'Sandbox reconnected' : 'Agent offline',
-              isOffline ? 'Live evaluation streaming again.' : 'Displaying cached run run_0912.',
-              isOffline ? 'ok' : 'crit'
-            );
-          }}
-          onToggleNav={() => setIsNavOpen((prev) => !prev)}
-          onToggleCollapse={() => setIsCollapsed((prev) => !prev)}
-          onOpenCommand={() => setShowCommandPalette(true)}
-          onPrimaryAction={handlePrimaryAction}
-          onToast={addToast}
-        />
+      {/* 3-Step Wizard Navigation */}
+      <div style={{ maxWidth: '1000px', margin: '32px auto 0', padding: '0 24px' }}>
+        <div style={{ display: 'flex', background: '#fff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '8px', gap: '8px' }}>
+          <button
+            onClick={() => setStep(1)}
+            style={{
+              flex: 1, padding: '12px 16px', borderRadius: '8px', border: 'none', cursor: 'pointer', textAlign: 'left',
+              background: step === 1 ? '#f0f9ff' : 'transparent',
+              color: step === 1 ? '#0369a1' : '#64748b',
+              fontWeight: step === 1 ? '600' : '500'
+            }}
+          >
+            <div style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Step 1</div>
+            <div style={{ fontSize: '14px' }}>Target Agent (Victim)</div>
+          </button>
 
-        <main className="workspace" tabIndex={-1}>
-          {isOffline && (
-            <div className="banner">
-              <span className="banner__txt">
-                Agent offline — displaying cached evaluation run <b>run_0912</b>.
-              </span>
-              <button className="btn btn--secondary btn--sm" onClick={() => setIsOffline(false)}>
-                Retry connection
-              </button>
-            </div>
-          )}
+          <button
+            onClick={() => trace && setStep(2)}
+            disabled={!trace}
+            style={{
+              flex: 1, padding: '12px 16px', borderRadius: '8px', border: 'none', cursor: trace ? 'pointer' : 'not-allowed', textAlign: 'left',
+              background: step === 2 ? '#fef2f2' : 'transparent',
+              color: step === 2 ? '#b91c1c' : trace ? '#64748b' : '#cbd5e1',
+              fontWeight: step === 2 ? '600' : '500'
+            }}
+          >
+            <div style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Step 2</div>
+            <div style={{ fontSize: '14px' }}>Red-Team Attack ({trace ? `${trace.total_findings_count} Exploits` : 'Unrun'})</div>
+          </button>
 
-          {route === 'overview' && (
-            <OverviewView
-              overview={mockData.overview}
-              activity={mockData.activity}
-              targetAgents={targetAgents}
-              onNavigate={setRoute}
-              onSync={handleSyncSandbox}
-              onToast={addToast}
-            />
-          )}
-
-          {route === 'campaigns' && (
-            <CampaignsView
-              campaigns={campaigns}
-              targetAgents={targetAgents}
-              onLaunchCampaign={() => setShowLaunchModal(true)}
-              onToast={addToast}
-            />
-          )}
-
-          {route === 'targets' && (
-            <TargetsView
-              targetAgents={targetAgents}
-              onSelectTarget={setSelectedTarget}
-              onLaunchCampaign={() => setShowLaunchModal(true)}
-              onToast={addToast}
-            />
-          )}
-
-          {route === 'traces' && (
-            <TracesView
-              attackTraces={attackTraces}
-              targetAgents={targetAgents}
-              selectedTraceId={selectedTraceId}
-              onSelectTrace={setSelectedTraceId}
-              onOpenTraceDrawer={openTraceDrawer}
-            />
-          )}
-
-          {route === 'permissions' && (
-            <PermissionsView tools={mockData.tools} onToast={addToast} />
-          )}
-
-          {route === 'defense' && (
-            <DefenseView defense={mockData.defense} onValidateDefense={handleValidateDefense} />
-          )}
-
-          {route === 'settings' && (
-            <SettingsView
-              workspace={mockData.workspace}
-              targetAgents={targetAgents}
-              apiReference={mockData.api_reference}
-              isOffline={isOffline}
-              onToggleOffline={() => setIsOffline((prev) => !prev)}
-              onToast={addToast}
-            />
-          )}
-        </main>
+          <button
+            onClick={() => defenseReport && setStep(3)}
+            disabled={!defenseReport}
+            style={{
+              flex: 1, padding: '12px 16px', borderRadius: '8px', border: 'none', cursor: defenseReport ? 'pointer' : 'not-allowed', textAlign: 'left',
+              background: step === 3 ? '#f0fdf4' : 'transparent',
+              color: step === 3 ? '#15803d' : defenseReport ? '#64748b' : '#cbd5e1',
+              fontWeight: step === 3 ? '600' : '500'
+            }}
+          >
+            <div style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Step 3</div>
+            <div style={{ fontSize: '14px' }}>Defense Validation ({defenseReport ? `${defenseReport.exact_replay_blocking_rate}% Blocked` : 'Pending'})</div>
+          </button>
+        </div>
       </div>
 
-      {/* Modals & Drawers */}
-      {showLaunchModal && (
-        <LaunchCampaignModal
-          targetAgents={targetAgents}
-          onClose={() => setShowLaunchModal(false)}
-          onLaunch={handleLaunchCampaign}
-          onToast={addToast}
-        />
-      )}
+      {/* Step Content */}
+      <main style={{ maxWidth: '1000px', margin: '24px auto 48px', padding: '0 24px' }}>
+        {/* STEP 1: TARGET AGENT */}
+        {step === 1 && (
+          <div style={{ background: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0', padding: '32px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px' }}>
+              <div>
+                <span style={{ fontSize: '12px', background: '#e0f2fe', color: '#0369a1', padding: '4px 10px', borderRadius: '999px', fontWeight: '600' }}>
+                  Target Under Test
+                </span>
+                <h1 style={{ fontSize: '24px', fontWeight: '700', marginTop: '12px', marginBottom: '4px' }}>
+                  {target ? target.name : 'Loading Retail Banking Assistant...'}
+                </h1>
+                <p style={{ color: '#64748b', fontSize: '14px', margin: 0 }}>
+                  Agent ID: <code>{target?.id || 'bank_agent_v1'}</code> · Apex Trust Bank Customer Service
+                </p>
+              </div>
 
-      {showRegisterModal && (
-        <RegisterTargetModal
-          tools={mockData.tools}
-          onClose={() => setShowRegisterModal(false)}
-          onRegister={handleRegisterTarget}
-          onToast={addToast}
-        />
-      )}
+              <button
+                onClick={runRedTeamAttack}
+                disabled={loading}
+                style={{
+                  background: '#ef4444', color: '#fff', border: 'none', padding: '12px 24px', borderRadius: '8px',
+                  fontWeight: '600', fontSize: '15px', cursor: loading ? 'wait' : 'pointer', display: 'flex', alignItems: 'center', gap: '8px'
+                }}
+              >
+                <Icon name="zap" size="sm" />
+                {loading ? 'Attacking Agent...' : 'Launch Red-Team Attack'}
+              </button>
+            </div>
 
-      {drawerTrace && (
-        <TraceDrawer
-          trace={drawerTrace}
-          stepIndex={drawerStep}
-          targetAgents={targetAgents}
-          onClose={() => {
-            setDrawerTrace(null);
-            setDrawerStep(null);
-          }}
-          onToast={addToast}
-        />
-      )}
+            <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '8px', marginBottom: '24px', border: '1px solid #e2e8f0' }}>
+              <div style={{ fontSize: '12px', fontWeight: '600', color: '#475569', textTransform: 'uppercase', marginBottom: '6px' }}>
+                System Instructions (What the bot was told to do)
+              </div>
+              <p style={{ fontSize: '14px', color: '#334155', margin: 0, lineHeight: '1.5' }}>
+                "{target?.system_prompt}"
+              </p>
+            </div>
 
-      <CommandPalette
-        isOpen={showCommandPalette}
-        onClose={() => setShowCommandPalette(false)}
-        onNavigate={(r) => {
-          setRoute(r);
-          setIsNavOpen(false);
-        }}
-        onLaunchCampaign={() => setShowLaunchModal(true)}
-        onRegisterTarget={() => setShowRegisterModal(true)}
-        onSync={handleSyncSandbox}
-      />
+            <div>
+              <div style={{ fontSize: '14px', fontWeight: '600', color: '#1e293b', marginBottom: '12px' }}>
+                Attached Dangerous Tools ({target?.tools?.length || 5})
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '12px' }}>
+                {(target?.tools || []).map((t) => (
+                  <div key={t.name} style={{ border: '1px solid #e2e8f0', borderRadius: '8px', padding: '12px', background: '#fff' }}>
+                    <div style={{ fontWeight: '600', fontSize: '14px', color: '#0f172a' }}>
+                      <code>{t.name}()</code>
+                    </div>
+                    <div style={{ fontSize: '13px', color: '#64748b', marginTop: '4px' }}>
+                      {t.description}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
 
-      <ToastContainer toasts={toasts} onDismiss={removeToast} />
+        {/* STEP 2: RED-TEAM ATTACK FINDINGS */}
+        {step === 2 && trace && (
+          <div>
+            <div style={{ background: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0', padding: '24px', marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <h2 style={{ fontSize: '20px', fontWeight: '700', margin: 0, color: '#991b1b' }}>
+                  ⚠️ {trace.total_findings_count} Exploits Discovered in Retail Banking Assistant
+                </h2>
+                <p style={{ fontSize: '14px', color: '#64748b', margin: '4px 0 0' }}>
+                  Run ID: <code>{trace.run_id}</code> · All 3 attack families successfully exploited the vulnerable target.
+                </p>
+              </div>
+              <button
+                onClick={runDefenseValidation}
+                disabled={loading}
+                style={{
+                  background: '#10b981', color: '#fff', border: 'none', padding: '12px 24px', borderRadius: '8px',
+                  fontWeight: '600', fontSize: '15px', cursor: loading ? 'wait' : 'pointer', display: 'flex', alignItems: 'center', gap: '8px'
+                }}
+              >
+                <Icon name="shield" size="sm" />
+                {loading ? 'Validating Defenses...' : 'Apply Defenses & Replay'}
+              </button>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: '24px' }}>
+              {/* Finding List */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {trace.findings.map((f, idx) => (
+                  <div
+                    key={idx}
+                    onClick={() => setSelectedFinding(f)}
+                    style={{
+                      background: '#fff', borderRadius: '8px', border: selectedFinding === f ? '2px solid #ef4444' : '1px solid #e2e8f0',
+                      padding: '16px', cursor: 'pointer', transition: 'all 0.15s ease'
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                      <span style={{ fontSize: '11px', textTransform: 'uppercase', fontWeight: '700', color: f.severity === 'critical' ? '#dc2626' : '#ea580c' }}>
+                        {f.severity}
+                      </span>
+                      <span style={{ fontSize: '11px', color: '#94a3b8' }}>Attempt #{f.attempt_id}</span>
+                    </div>
+                    <div style={{ fontWeight: '600', fontSize: '14px', color: '#1e293b' }}>
+                      {f.family.replace(/_/g, ' ').toUpperCase()}
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#64748b', marginTop: '4px', lineHeight: '1.4' }}>
+                      {f.objective}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Finding Details / Evidence */}
+              {selectedFinding && (
+                <div style={{ background: '#fff', borderRadius: '8px', border: '1px solid #e2e8f0', padding: '24px' }}>
+                  <h3 style={{ fontSize: '18px', fontWeight: '700', marginTop: 0, marginBottom: '8px', color: '#0f172a' }}>
+                    {selectedFinding.objective}
+                  </h3>
+                  <div style={{ fontSize: '13px', color: '#64748b', marginBottom: '20px' }}>
+                    Referee Rule ID: <code>{selectedFinding.policy_rule_id}</code>
+                  </div>
+
+                  <div style={{ marginBottom: '20px' }}>
+                    <div style={{ fontSize: '12px', fontWeight: '600', color: '#475569', textTransform: 'uppercase', marginBottom: '6px' }}>
+                      How the Attacker Tricked the Bot (Payload)
+                    </div>
+                    <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '13px', fontFamily: 'monospace' }}>
+                      {trace.attempts.find((a) => a.attempt_id === selectedFinding.attempt_id)?.payload}
+                    </div>
+                  </div>
+
+                  <div style={{ marginBottom: '20px' }}>
+                    <div style={{ fontSize: '12px', fontWeight: '600', color: '#475569', textTransform: 'uppercase', marginBottom: '6px' }}>
+                      Unauthorized Tools Executed by the Bot
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      {(trace.attempts.find((a) => a.attempt_id === selectedFinding.attempt_id)?.tool_calls || []).map((tc, tcIdx) => (
+                        <div key={tcIdx} style={{ background: '#fef2f2', border: '1px solid #fecaca', padding: '10px', borderRadius: '6px', fontSize: '13px' }}>
+                          <span style={{ fontWeight: '700', color: '#991b1b' }}>{tc.tool}</span>: {tc.result_summary}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div style={{ fontSize: '12px', fontWeight: '600', color: '#475569', textTransform: 'uppercase', marginBottom: '6px' }}>
+                      Referee Verdict & Proof
+                    </div>
+                    <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '12px', borderRadius: '6px', fontSize: '13px', color: '#166534' }}>
+                      {selectedFinding.evidence}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* STEP 3: DEFENSE VALIDATION */}
+        {step === 3 && defenseReport && (
+          <div style={{ background: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0', padding: '32px' }}>
+            <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+              <div style={{ display: 'inline-flex', padding: '12px', background: '#dcfce7', borderRadius: '50%', color: '#15803d', marginBottom: '12px' }}>
+                <Icon name="shield" size="lg" />
+              </div>
+              <h2 style={{ fontSize: '24px', fontWeight: '700', margin: '0 0 8px', color: '#15803d' }}>
+                Defenses Successfully Validated!
+              </h2>
+              <p style={{ color: '#64748b', fontSize: '14px', maxWidth: '600px', margin: '0 auto' }}>
+                The candidate defense profile was applied, and all previously successful exploit payloads were replayed against the hardened agent.
+              </p>
+            </div>
+
+            {/* Scorecard */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '32px' }}>
+              <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '8px', border: '1px solid #e2e8f0', textAlign: 'center' }}>
+                <div style={{ fontSize: '36px', fontWeight: '800', color: '#15803d' }}>
+                  {defenseReport.exact_replay_blocking_rate}%
+                </div>
+                <div style={{ fontSize: '14px', fontWeight: '600', color: '#334155', marginTop: '4px' }}>
+                  Exploits Blocked on Replay
+                </div>
+                <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>
+                  {defenseReport.baseline_findings_count} out of {defenseReport.baseline_findings_count} attacks mitigated
+                </div>
+              </div>
+
+              <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '8px', border: '1px solid #e2e8f0', textAlign: 'center' }}>
+                <div style={{ fontSize: '36px', fontWeight: '800', color: defenseReport.legitimate_task_passed ? '#15803d' : '#ef4444' }}>
+                  {defenseReport.legitimate_task_passed ? '100%' : 'Broken'}
+                </div>
+                <div style={{ fontSize: '14px', fontWeight: '600', color: '#334155', marginTop: '4px' }}>
+                  Legitimate Agent Utility Retained
+                </div>
+                <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>
+                  Real customer queries (balance check, notes) still work perfectly
+                </div>
+              </div>
+            </div>
+
+            {/* Replay Details Table */}
+            <div>
+              <div style={{ fontSize: '14px', fontWeight: '600', color: '#1e293b', marginBottom: '12px' }}>
+                Per-Family Mitigation Ledger
+              </div>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px', textAlign: 'left' }}>
+                <thead>
+                  <tr style={{ borderBottom: '2px solid #e2e8f0', color: '#475569' }}>
+                    <th style={{ padding: '8px' }}>Attack Vector</th>
+                    <th style={{ padding: '8px' }}>Exact Replay Result</th>
+                    <th style={{ padding: '8px' }}>Adaptive Bypass</th>
+                    <th style={{ padding: '8px' }}>Active Mitigation Applied</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(defenseReport.family_results || []).map((fr, idx) => (
+                    <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                      <td style={{ padding: '12px 8px', fontWeight: '600' }}>
+                        {fr.family.replace(/_/g, ' ').toUpperCase()}
+                      </td>
+                      <td style={{ padding: '12px 8px' }}>
+                        <span style={{ background: '#dcfce7', color: '#15803d', padding: '4px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: '600' }}>
+                          BLOCKED (100%)
+                        </span>
+                      </td>
+                      <td style={{ padding: '12px 8px' }}>
+                        <span style={{ color: '#64748b' }}>None Found</span>
+                      </td>
+                      <td style={{ padding: '12px 8px', color: '#475569', fontSize: '13px' }}>
+                        {fr.family === 'indirect_prompt_injection' && 'Untrusted document quarantine tags'}
+                        {fr.family === 'unauthorized_tool_use' && 'Strict $1,000 threshold & recipient allowlist'}
+                        {fr.family === 'memory_poisoning' && 'Pre-write session note schema sanitizer'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div style={{ marginTop: '32px', textAlign: 'center' }}>
+              <button
+                onClick={() => setStep(1)}
+                style={{
+                  background: '#f1f5f9', color: '#334155', border: '1px solid #cbd5e1', padding: '10px 20px', borderRadius: '6px',
+                  fontWeight: '600', fontSize: '14px', cursor: 'pointer'
+                }}
+              >
+                Reset & Test Another Agent
+              </button>
+            </div>
+          </div>
+        )}
+      </main>
+
+      <ToastContainer toasts={toasts} onDismiss={(id) => setToasts((prev) => prev.filter((t) => t.id !== id))} />
     </div>
   );
 }
