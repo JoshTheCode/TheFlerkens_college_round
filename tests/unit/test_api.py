@@ -16,6 +16,16 @@ def test_health_endpoint(client):
     assert "api_ready" in data
     assert "provider_ready" in data
 
+    # Header-based provider configuration check
+    res_hdr = client.get(
+        "/api/v1/health",
+        headers={"X-API-Key": "sk-test-live-key", "X-Red-Team-Model": "anthropic/claude-3.5-sonnet"},
+    )
+    assert res_hdr.status_code == 200
+    data_hdr = res_hdr.json()
+    assert data_hdr["provider_ready"] is True
+    assert data_hdr["model"] == "anthropic/claude-3.5-sonnet"
+
 
 def test_get_default_target(client):
     res = client.get("/api/v1/targets/default")
@@ -23,6 +33,38 @@ def test_get_default_target(client):
     data = res.json()
     assert data["id"] == "bank_agent_v1"
     assert len(data["tools"]) == 5
+
+
+def test_list_and_get_multiple_targets(client):
+    res = client.get("/api/v1/targets")
+    assert res.status_code == 200
+    targets = res.json()
+    assert len(targets) >= 3
+    target_ids = {t["id"] for t in targets}
+    assert "bank_agent_v1" in target_ids
+    assert "health_agent_v1" in target_ids
+    assert "hr_agent_v1" in target_ids
+
+    # Query healthcare target specifically
+    res_h = client.get("/api/v1/targets/health_agent_v1")
+    assert res_h.status_code == 200
+    assert res_h.json()["name"] == "Clinical Triage & Patient Records Assistant"
+
+    # Query HR target specifically
+    res_hr = client.get("/api/v1/targets/hr_agent_v1")
+    assert res_hr.status_code == 200
+    assert res_hr.json()["name"] == "Enterprise HR & Payroll Operations Assistant"
+
+
+def test_attack_against_healthcare_target(client):
+    res = client.post(
+        "/api/v1/attacks/start",
+        json={"target_id": "health_agent_v1", "execution_mode": "deterministic_fixture"},
+    )
+    assert res.status_code == 200
+    data = res.json()
+    assert data["target_profile"]["id"] == "health_agent_v1"
+    assert len(data["plans"]) >= 3
 
 
 def test_attack_lifecycle_and_defense_validation(client):
@@ -58,6 +100,31 @@ def test_missing_run_id_returns_404(client):
     res = client.get("/api/v1/attacks/nonexistent_run_999")
     assert res.status_code == 404
 
+
+def test_start_attack_run_accepts_mode_and_body(client):
+    res = client.post(
+        "/api/v1/attacks/start",
+        json={"target_id": "bank_agent_v1", "execution_mode": "deterministic_fixture"},
+    )
+    assert res.status_code == 200
+    data = res.json()
+    assert data["execution_mode"] == "deterministic_fixture"
+    assert data["total_findings_count"] >= 2
+
+
+def test_runtime_openapi_matches_committed_contract():
+    import json
+    from pathlib import Path
+    spec_path = Path("api/openapi.json")
+    committed = json.loads(spec_path.read_text(encoding="utf-8"))
+    runtime = app.openapi()
+
+    assert runtime["info"]["version"] == committed["info"]["version"]
+    assert set(runtime["paths"].keys()) == set(committed["paths"].keys())
+    assert runtime["info"]["version"] == "1.1.0"
+
+
+def test_nonexistent_trace_and_defense_validation_404(client):
     res_trace = client.get("/api/v1/attacks/nonexistent_run_999/trace")
     assert res_trace.status_code == 404
 
@@ -66,3 +133,4 @@ def test_missing_run_id_returns_404(client):
         json={"baseline_run_id": "nonexistent_run_999"},
     )
     assert res_val.status_code == 404
+

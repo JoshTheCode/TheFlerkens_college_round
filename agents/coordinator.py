@@ -22,7 +22,7 @@ from agents.models import (
 )
 from agents.planner import AutonomousAttackPlanner, AutonomousPayloadGenerator
 from agents.storage import LocalTraceStorage
-from agents.target.agent import ToolCallingBankAgent, get_default_bank_target_profile
+from agents.target.agent import ToolCallingBankAgent, get_default_bank_target_profile, get_target_profile, list_target_profiles
 from agents.target.tools import BankingSandboxRuntime
 
 
@@ -68,10 +68,12 @@ class RedTeamCoordinator:
         defense: Optional[DefenseProfile] = None,
         attack_families: Optional[List[AttackFamily]] = None,
         execution_mode: Optional[ExecutionMode] = None,
+        target_id: Optional[str] = None,
     ) -> ExecutionTrace:
         if not run_id:
             run_id = f"run_{uuid.uuid4().hex[:8]}"
 
+        target = get_target_profile(target_id) if target_id else self.target_profile
         mode = execution_mode or (ExecutionMode.LIVE if self.client.is_configured else ExecutionMode.DETERMINISTIC_FIXTURE)
 
         # Token delta snapshot at start of run
@@ -79,7 +81,7 @@ class RedTeamCoordinator:
         suite_start_t = time.time()
         deadline = suite_start_t + self.run_timeout_seconds
 
-        plans = self.planner.plan_attacks(self.target_profile, execution_mode=mode)
+        plans = self.planner.plan_attacks(target, execution_mode=mode)
         if attack_families:
             plans = [p for p in plans if p.family in attack_families]
 
@@ -87,7 +89,7 @@ class RedTeamCoordinator:
             run_id=run_id,
             status=RunStatus.RUNNING,
             execution_mode=mode,
-            target_profile=copy.deepcopy(self.target_profile),
+            target_profile=copy.deepcopy(target),
             defense_profile=copy.deepcopy(defense) if defense else None,
             plans=plans,
             start_time=time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),

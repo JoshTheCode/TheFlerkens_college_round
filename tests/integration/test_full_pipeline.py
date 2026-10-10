@@ -81,18 +81,25 @@ def test_multiple_legitimate_controls_retention():
 
 
 def test_budget_token_enforcement():
+    import json
     # Configure tiny token budget and simulate client token delta accumulation
     client = ModelClient(api_key="sk-test-key")
     coordinator = RedTeamCoordinator(model_client=client)
     coordinator.max_tokens_budget = 50
+    valid_plans_json = json.dumps([
+        {"family": "indirect_prompt_injection", "objective": "obj1", "steps": ["s1"], "success_condition": "c1", "expected_severity": "critical"},
+        {"family": "unauthorized_tool_use", "objective": "obj2", "steps": ["s2"], "success_condition": "c2", "expected_severity": "high"},
+        {"family": "memory_poisoning", "objective": "obj3", "steps": ["s3"], "success_condition": "c3", "expected_severity": "medium"},
+    ])
     # Simulate tokens consumed during run
     def fake_call(*args, **kwargs):
         coordinator.client.cumulative_tokens += 100
-        return {"choices": [{"message": {"content": "[]"}}]}
+        return {"choices": [{"message": {"content": valid_plans_json}}]}
     coordinator.client.call_chat_completion = fake_call
     # In live mode with fake_call consuming tokens
     trace = coordinator.run_attack_suite(execution_mode=ExecutionMode.LIVE)
     assert trace.stopping_reason == StoppingReason.TOKEN_BUDGET_EXHAUSTED
+
 
 
 def test_execution_mode_labeling():

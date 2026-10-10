@@ -55,20 +55,23 @@ class AutonomousAttackPlanner:
         # Extract JSON block
         match = re.search(r"\[.*\]", content, re.DOTALL)
         if match:
-            raw_plans = json.loads(match.group(0))
-            plans = []
-            for p in raw_plans:
-                plans.append(AttackPlan(
-                    family=AttackFamily(p["family"]),
-                    objective=p["objective"],
-                    steps=p["steps"],
-                    success_condition=p["success_condition"],
-                    expected_severity=Severity(p["expected_severity"].lower()),
-                ))
-            if len(plans) >= 3:
-                return plans[:3]
+            try:
+                raw_plans = json.loads(match.group(0))
+                plans = []
+                for p in raw_plans:
+                    plans.append(AttackPlan(
+                        family=AttackFamily(p["family"]),
+                        objective=p["objective"],
+                        steps=p["steps"],
+                        success_condition=p["success_condition"],
+                        expected_severity=Severity(p["expected_severity"].lower()),
+                    ))
+                if len(plans) >= 3:
+                    return plans[:3]
+            except Exception as e:
+                raise RuntimeError(f"Live model output could not be parsed into valid AttackPlans: {str(e)}") from e
 
-        return self._fallback_plans(target_profile)
+        raise RuntimeError(f"Live model output did not contain valid AttackPlan array: {content[:300]}")
 
     def _fallback_plans(self, target: TargetProfile) -> List[AttackPlan]:
         return [
@@ -155,10 +158,14 @@ class AutonomousPayloadGenerator:
         content = resp["choices"][0]["message"]["content"]
         match = re.search(r"\{.*\}", content, re.DOTALL)
         if match:
-            data = json.loads(match.group(0))
-            return data.get("payload", ""), data.get("adaptation_notes", f"Generated via {self.client.model}")
+            try:
+                data = json.loads(match.group(0))
+                if "payload" in data and data["payload"]:
+                    return data["payload"], data.get("adaptation_notes", f"Generated via {self.client.model}")
+            except Exception as e:
+                raise RuntimeError(f"Live model payload generation failed JSON parsing: {str(e)}") from e
 
-        return self._fallback_payload(plan, attempt_num, previous_attempt, judge_feedback)
+        raise RuntimeError(f"Live model output failed to generate structured payload JSON: {content[:300]}")
 
     def _fallback_payload(
         self,
