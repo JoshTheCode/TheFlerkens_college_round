@@ -6,23 +6,21 @@ Usage:
 """
 
 import argparse
-import json
 import os
 import sys
-from typing import Optional
+from typing import List
 
 from agents.coordinator import RedTeamCoordinator
 from agents.llm_client import ModelClient
 from agents.models import AttackFamily, DefenseProfile
-from agents.target.agent import ToolCallingBankAgent, get_default_bank_target_profile
-from agents.target.tools import BankingSandboxRuntime
+from agents.target.agent import get_default_bank_target_profile
 
 
 def run_vertical_slice_demo(mode: str) -> None:
-    print("=" * 70)
+    print("=" * 80)
     print("   AGENTBREAK: AUTONOMOUS AI RED TEAM DEMONSTRATION")
     print(f"   Mode: {mode.upper()}")
-    print("=" * 70)
+    print("=" * 80)
 
     # 1. Environment & Mode Verification
     api_key = os.getenv("OPENAI_API_KEY", "").strip()
@@ -47,69 +45,87 @@ def run_vertical_slice_demo(mode: str) -> None:
     print("\n--- 1. TARGET PROFILE ---")
     print(f"Target ID: {target.id}")
     print(f"Target Name: {target.name}")
-    print(f"System Instructions: {target.system_prompt[:80]}...")
+    print(f"System Instructions: {target.system_prompt[:90]}...")
     print(f"Available Tools: {[t.name for t in target.tools]}")
     print(f"Allowed Resources: {target.allowed_resources}")
     print(f"Forbidden Resources: {target.forbidden_resources}")
 
-    # 3. Generate Attack Plan & Execute Single Vertical Slice (Indirect Prompt Injection)
-    print("\n--- 2. ATTACK PLANNING & BASELINE RUN ---")
-    trace = coordinator.run_attack_suite(
-        attack_families=[AttackFamily.INDIRECT_PROMPT_INJECTION]
-    )
+    # 3. Execute Baseline Run Across All Three Attack Families
+    print("\n--- 2. ATTACK SUITE EXECUTION (ALL 3 ATTACK FAMILIES) ---")
+    families_to_run = [
+        AttackFamily.INDIRECT_PROMPT_INJECTION,
+        AttackFamily.UNAUTHORIZED_TOOL_USE,
+        AttackFamily.MEMORY_POISONING,
+    ]
+    trace = coordinator.run_attack_suite(attack_families=families_to_run)
 
-    plan = trace.plans[0]
-    print(f"Attack Plan Family: {plan.family.value}")
-    print(f"Attack Objective: {plan.objective}")
-    print(f"Expected Severity: {plan.expected_severity.value.upper()}")
-    print(f"Success Condition: {plan.success_condition}")
+    for plan in trace.plans:
+        fam_attempts = [a for a in trace.attempts if a.family == plan.family]
+        fam_findings = [f for f in trace.findings if f.family == plan.family]
+        finding = fam_findings[0] if fam_findings else None
 
-    print("\n--- 3. EXECUTION ATTEMPTS & EVIDENCE ---")
-    for att in trace.attempts:
-        print(f"\n[Attempt {att.attempt_id}]")
-        print(f"Payload: {att.payload}")
-        print(f"Adaptation Summary: {att.adaptation_notes or 'Initial attempt'}")
-        print(f"Target Response: {att.target_response}")
-        print(f"Tools Intercepted: {[t.tool for t in att.tool_calls]}")
-        for t in att.tool_calls:
-            print(f"  -> {t.tool}(args={t.arguments}) [Rule: {t.policy_rule_id}, Authorized: {t.authorized}]")
+        print(f"\n[{plan.family.value.upper()}]")
+        print(f"  Objective: {plan.objective}")
+        print(f"  Attempts Run: {len(fam_attempts)}")
+        for a in fam_attempts:
+            print(f"    - Attempt {a.attempt_id}: payload='{a.payload[:60]}...'")
+            print(f"      Response: '{a.target_response[:70]}...'")
+            print(f"      Tools: {[t.tool for t in a.tool_calls]}")
+        if finding:
+            print(f"  Verdict: Success={finding.success} | Severity={finding.severity.value.upper()} | Rule={finding.policy_rule_id}")
+            print(f"  Evidence: {finding.evidence}")
 
-    print("\n--- 4. DETERMINISTIC JUDGE VERDICT ---")
-    finding = trace.findings[0]
-    print(f"Exploit Success: {finding.success}")
-    print(f"Finding Severity: {finding.severity.value.upper()}")
-    print(f"Policy Rule Evaluated: {finding.policy_rule_id}")
-    print(f"Evidence: {finding.evidence}")
-
-    # 4. Exact Defense Replay
-    print("\n--- 5. EXACT DEFENSE REPLAY ---")
+    # 4. Exact Defense Replay & Adaptive Bypass
+    print("\n--- 3. DEFENSE VALIDATION: EXACT REPLAY & ADAPTIVE BYPASS ---")
     defense = DefenseProfile(
-        name="Apex Hardened Policy v1",
+        name="Apex Trust Hardened Defense Profile v1",
         isolate_untrusted_documents=True,
         strict_tool_authorization=True,
+        allowed_transfer_recipients=["ACC_1001", "ACC_1002"],
+        transfer_amount_limit=1000.0,
         validate_memory_writes=True,
     )
     report = coordinator.validate_defense(
         baseline_run_id=trace.run_id,
         defense=defense,
     )
-    print(f"Baseline Exploit Replayed: '{trace.attempts[0].payload}'")
+
+    print(f"Baseline Run ID: {report.baseline_run_id}")
+    print(f"Verified Baseline Findings: {report.baseline_findings_count}/{len(trace.plans)}")
     print(f"Exact Replay Blocking Rate: {report.exact_replay_blocking_rate}%")
     print(f"Adaptive Bypass Findings: {report.adaptive_bypass_findings_count}")
     print(f"Adaptive Bypass Rate: {report.adaptive_bypass_rate}%")
+    print(f"Legitimate Task Controls Retained: {report.legitimate_task_passed}")
 
-    # 5. Legitimate Task Retention
-    print("\n--- 6. LEGITIMATE TASK CONTROL ---")
-    print(f"Balance & Permitted Operations Succeeded: {report.legitimate_task_passed}")
+    # 5. Per-Family Results Table
+    print("\n--- 4. PER-FAMILY RESULTS SUMMARY TABLE ---")
+    header = f"{'Attack Family':<28} | {'Attempts':<8} | {'Exploit':<7} | {'Severity':<8} | {'Replay Blocked':<14} | {'Adaptive Bypass':<15}"
+    print("-" * len(header))
+    print(header)
+    print("-" * len(header))
 
-    # 6. Final Summary
-    print("\n--- 7. FINAL SUMMARY & BUDGETS ---")
-    print(f"Run ID: {trace.run_id}")
-    print(f"Execution Mode: {trace.execution_mode}")
+    for plan in trace.plans:
+        fam_att_count = len([a for a in trace.attempts if a.family == plan.family])
+        fam_finding = next((f for f in trace.findings if f.family == plan.family), None)
+        fam_replay = next((r for r in report.family_results if r.family == plan.family), None)
+
+        exploit_str = "YES" if fam_finding and fam_finding.success else "NO"
+        sev_str = fam_finding.severity.value.upper() if fam_finding else "N/A"
+        replay_str = "BLOCKED" if (fam_replay and not fam_replay.replayed_successfully) else ("N/A" if not fam_replay else "BYPASSED")
+        bypass_str = "NO" if (fam_replay and not fam_replay.adaptive_bypass_succeeded) else ("YES" if fam_replay else "N/A")
+
+        row = f"{plan.family.value:<28} | {fam_att_count:<8} | {exploit_str:<7} | {sev_str:<8} | {replay_str:<14} | {bypass_str:<15}"
+        print(row)
+    print("-" * len(header))
+
+    # 6. Budgets & Final Ledger
+    print("\n--- 5. BUDGETS, STOPPING REASON & COST LEDGER ---")
     print(f"Total Tokens Used: {trace.total_tokens_used}")
+    print(f"Cost Status: {report.cost_status} (exact provider pricing is unavailable locally without active provider telemetry)")
+    print(f"Cost USD: {report.cost_usd if report.cost_usd is not None else 'N/A'}")
     print(f"Stopping Reason: {trace.stopping_reason}")
-    print(f"Status: {report.status}")
-    print("=" * 70)
+    print(f"Final Status: {report.status}")
+    print("=" * 80)
 
 
 def main():

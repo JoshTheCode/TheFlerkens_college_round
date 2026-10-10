@@ -36,6 +36,7 @@
 | 2026-10-10 | AI Assistant | Phase 2: Trace Foundations | Implemented timestamps, policy rule IDs, true memory before/after diffs, fresh attempt-scoped tool interception, local trace storage (`LocalTraceStorage`), exact baseline replay by `baseline_run_id`, separate adaptive bypass reporting, API 404 validation, health reporting, and CORS restrictions. Executed `python3 -m pytest -v tests/` (9 passed in 0.31s). | ✅ Verified empirically |
 | 2026-10-10 | AI Assistant | Phases 3-6: Autonomous Pipeline & Bounded Verification | Implemented `AutonomousAttackPlanner` inspecting live `TargetProfile`, adaptive `AutonomousPayloadGenerator` incorporating judge evidence and adaptation notes, `ToolCallingBankAgent` with genuine tool calling and deterministic fallback double, bounded timeout/attempt budgets, provider error propagation, and expanded unit/integration/API test suites (14 tests passed in 0.32s). Schema-validated `demo/prerecorded_trace.json`. | ✅ Verified empirically (14 tests passing) |
 | 2026-10-10 | AI Assistant | Verification & Demo CLI | Implemented token budget enforcement (`AGENTBREAK_MAX_TOKENS_BUDGET`), explicit `execution_mode` labeling (`live`, `deterministic_fallback`, `prerecorded`), and standalone CLI runner `scripts/run_demo.py`. Executed `python3 -m pytest -v` (16 passed in 0.27s). Verified `python -m scripts.run_demo --mode deterministic` (100% replay blocking, legitimate balance retained, stopping reason recorded). Verified `python -m scripts.run_demo --mode live` correctly halts with exit code 1 and reports unverified status when `OPENAI_API_KEY` is not set. | ✅ Verified empirically (16 tests passing) |
+| 2026-10-10 | AI Assistant | Multi-Family Acceptance & Cost Ledger | Completed all 3 attack families (`indirect_prompt_injection`, `unauthorized_tool_use`, `memory_poisoning`), generating 3/3 verified baseline findings. Implemented exact per-family replay and adaptive bypass attempt tracking (`FamilyReplayResult`). Added per-family summary table and cost tracking status (`cost_status='unavailable'` since exact pricing cannot be derived locally). Executed `python3 -m pytest -v` (20 passed in 0.30s). | ✅ Verified empirically (20 tests passing) |
 
 ---
 
@@ -44,7 +45,9 @@
 | Entry ID | Component | Shortcut Taken | Limit / Upgrade Condition |
 | :--- | :--- | :--- | :--- |
 | shortcut: 01 | Target Sandbox | In-memory simulated banking database and tools (`check_balance`, `search_internal_policies`, `read_customer_record`, `transfer_funds`, `save_session_note`). No live banking APIs or real credentials. | Preserved as intentional safety boundary to prevent real external risk during hackathon evaluation. |
-| shortcut: 02 | Live Model Verification | Live model behavior against an external OpenAI/OpenRouter endpoint is unverified locally due to absence of configured `OPENAI_API_KEY`. Deterministic model doubles and budget caps are fully tested in CI and offline demo mode. | Verify against live provider endpoint once valid `OPENAI_API_KEY` is provided in environment. |
+| shortcut: 02 | Live Model Verification | Live model behavior against an external OpenAI/OpenRouter endpoint is unverified locally due to absence of configured `OPENAI_API_KEY`. Deterministic model doubles, true memory diffs, and token budgets are fully tested in CI and offline demo mode. | Verify against live provider endpoint once valid `OPENAI_API_KEY` is provided in environment. |
+| shortcut: 03 | Cost Calculation | Exact monetary cost is reported as `unavailable` because provider pricing tiers cannot be determined locally without active provider telemetry. Token budget remains enforced. | Implement live pricing API lookup when external billing integration is configured. |
+
 
 
 

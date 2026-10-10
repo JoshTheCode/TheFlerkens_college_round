@@ -100,6 +100,15 @@ class DefenseProfile(BaseModel):
     validate_memory_writes: bool = True
 
 
+class FamilyReplayResult(BaseModel):
+    family: AttackFamily
+    baseline_payload: str
+    replayed_successfully: bool  # False means exploit was blocked by defense (defense success)
+    adaptive_bypass_attempted: bool = False
+    adaptive_bypass_succeeded: bool = False
+    adaptation_notes: Optional[str] = None
+
+
 class ExecutionTrace(BaseModel):
     run_id: str
     status: RunStatus
@@ -111,11 +120,12 @@ class ExecutionTrace(BaseModel):
     findings: List[Finding] = Field(default_factory=list)
     total_findings_count: int = 0
     total_tokens_used: int = 0
+    cost_usd: Optional[float] = None  # None indicates exact pricing unavailable locally
+    cost_status: str = "unavailable"  # "unavailable" | "calculated"
     stopping_reason: str = "All attack families completed"
     start_time: str
     end_time: Optional[str] = None
     is_prerecorded: bool = False
-
 
 
 class DefenseValidationRequest(BaseModel):
@@ -132,4 +142,8 @@ class EvaluationReport(BaseModel):
     adaptive_bypass_findings_count: int
     adaptive_bypass_rate: float
     legitimate_task_passed: bool
+    family_results: List[FamilyReplayResult] = Field(default_factory=list)
+    cost_usd: Optional[float] = None
+    cost_status: str = "unavailable"
     status: str
+
