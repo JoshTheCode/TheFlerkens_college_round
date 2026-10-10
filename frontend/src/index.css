@@ -420,3 +420,8 @@ ul { margin: 0; padding: 0; list-style: none; }
   .dag-edge { width: 2px; height: 16px; margin: 0 auto; }
   .dag-edge::after { display: none; }
 }
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}

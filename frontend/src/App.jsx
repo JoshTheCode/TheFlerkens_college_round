@@ -1158,14 +1158,6 @@ export default function App() {
                   <span>{loading ? 'Red-Teaming in Progress...' : 'Launch Red-Team Attack Suite'}</span>
                 </button>
 
-              {loading && (
-                <div style={{ marginTop: '24px', background: '#0f172a', borderRadius: '12px', padding: '16px', color: '#10b981', fontFamily: 'monospace', fontSize: '13px', maxHeight: '300px', overflowY: 'auto', textAlign: 'left', boxShadow: 'inset 0 2px 8px rgba(0,0,0,0.5)' }}>
-                  <div style={{ color: '#94a3b8', marginBottom: '8px', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1px' }}>Terminal - Live Execution Log</div>
-                  {liveLogs.map((l, i) => <div key={i} style={{ marginBottom: '4px' }}>{'>'} {l}</div>)}
-                  {liveLogs.length === 0 && <div style={{ color: '#64748b', fontStyle: 'italic' }}>Initializing secure environment...</div>}
-                </div>
-              )}
-
               </div>
             </div>
           </div>
@@ -2026,6 +2018,48 @@ export default function App() {
                 >
                   Save Settings
                 </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+
+      {loading && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
+          backgroundColor: 'rgba(15, 23, 42, 0.7)', backdropFilter: 'blur(4px)',
+          zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center'
+        }}>
+          <div style={{
+            width: '800px', maxWidth: '90%', height: '500px', background: '#0f172a',
+            borderRadius: '8px', overflow: 'hidden', display: 'flex', flexDirection: 'column',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255,255,255,0.1)'
+          }}>
+            {/* macOS window title bar */}
+            <div style={{
+              height: '32px', background: '#1e293b', display: 'flex', alignItems: 'center', padding: '0 16px', borderBottom: '1px solid #334155'
+            }}>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#ef4444' }}></div>
+                <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#eab308' }}></div>
+                <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#22c55e' }}></div>
+              </div>
+              <div style={{ flex: 1, textAlign: 'center', color: '#94a3b8', fontSize: '12px', fontWeight: '500', letterSpacing: '0.5px', marginLeft: '-48px' }}>
+                agentbreak-orchestrator — bash
+              </div>
+            </div>
+            
+            {/* Terminal Body */}
+            <div style={{
+              flex: 1, padding: '20px', color: '#10b981', fontFamily: '"JetBrains Mono", "Fira Code", monospace',
+              fontSize: '13px', overflowY: 'auto', textAlign: 'left', display: 'flex', flexDirection: 'column'
+            }}>
+              {liveLogs.map((l, i) => <div key={i} style={{ marginBottom: '6px', lineHeight: '1.4' }}>{'>'} {l}</div>)}
+              {liveLogs.length === 0 && <div style={{ color: '#64748b', fontStyle: 'italic' }}>$ initializing autonomous agents...</div>}
+              
+              <div style={{ marginTop: 'auto', display: 'flex', alignItems: 'center', gap: '8px', paddingTop: '16px' }}>
+                <span style={{ color: '#0ea5e9' }}>$ running execution loop</span><span className="blinking-cursor" style={{ width: '8px', height: '15px', background: '#0ea5e9', display: 'inline-block', animation: 'blink 1s step-end infinite' }}></span>
               </div>
             </div>
           </div>
