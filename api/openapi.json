@@ -1,0 +1,516 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "AgentBreak API",
+    "version": "1.1.0",
+    "description": "Bounded autonomous red-team runs, reproducible traces, exact defense replay, and adaptive bypass evaluation for the built-in mock banking agent."
+  },
+  "servers": [{"url": "http://localhost:8000", "description": "Local development"}],
+  "paths": {
+    "/api/v1/health": {
+      "get": {
+        "operationId": "getHealth",
+        "tags": ["system"],
+        "summary": "Read API, storage, and provider readiness",
+        "responses": {
+          "200": {
+            "description": "Readiness snapshot",
+            "content": {"application/json": {"schema": {"$ref": "#/components/schemas/HealthResponse"}}}
+          }
+        }
+      }
+    },
+    "/api/v1/targets/default": {
+      "get": {
+        "operationId": "getDefaultTarget",
+        "tags": ["targets"],
+        "summary": "Read the built-in mock banking target",
+        "responses": {
+          "200": {
+            "description": "Immutable target profile",
+            "content": {"application/json": {"schema": {"$ref": "#/components/schemas/TargetProfile"}}}
+          }
+        }
+      }
+    },
+    "/api/v1/attacks/start": {
+      "post": {
+        "operationId": "startAttackRun",
+        "tags": ["attacks"],
+        "summary": "Start a bounded red-team run",
+        "requestBody": {
+          "required": true,
+          "content": {"application/json": {"schema": {"$ref": "#/components/schemas/AttackRunRequest"}}}
+        },
+        "responses": {
+          "202": {
+            "description": "Run accepted",
+            "content": {"application/json": {"schema": {"$ref": "#/components/schemas/AttackRunAccepted"}}}
+          },
+          "422": {"$ref": "#/components/responses/ValidationError"},
+          "503": {"$ref": "#/components/responses/ProviderUnavailable"}
+        }
+      }
+    },
+    "/api/v1/attacks/{run_id}": {
+      "parameters": [{"$ref": "#/components/parameters/RunId"}],
+      "get": {
+        "operationId": "getAttackRun",
+        "tags": ["attacks"],
+        "summary": "Read run status and aggregate metrics",
+        "responses": {
+          "200": {
+            "description": "Current run summary",
+            "content": {"application/json": {"schema": {"$ref": "#/components/schemas/AttackRunSummary"}}}
+          },
+          "404": {"$ref": "#/components/responses/RunNotFound"}
+        }
+      }
+    },
+    "/api/v1/attacks/{run_id}/trace": {
+      "parameters": [{"$ref": "#/components/parameters/RunId"}],
+      "get": {
+        "operationId": "getAttackTrace",
+        "tags": ["attacks"],
+        "summary": "Read the complete persisted execution trace",
+        "responses": {
+          "200": {
+            "description": "Complete trace",
+            "content": {"application/json": {"schema": {"$ref": "#/components/schemas/ExecutionTrace"}}}
+          },
+          "404": {"$ref": "#/components/responses/RunNotFound"},
+          "409": {"$ref": "#/components/responses/RunIncomplete"}
+        }
+      }
+    },
+    "/api/v1/defenses/validate": {
+      "post": {
+        "operationId": "validateDefense",
+        "tags": ["defenses"],
+        "summary": "Replay baseline exploits and optionally run adaptive bypass attacks",
+        "requestBody": {
+          "required": true,
+          "content": {"application/json": {"schema": {"$ref": "#/components/schemas/DefenseValidationRequest"}}}
+        },
+        "responses": {
+          "200": {
+            "description": "Completed defense evaluation",
+            "content": {"application/json": {"schema": {"$ref": "#/components/schemas/EvaluationReport"}}}
+          },
+          "404": {"$ref": "#/components/responses/RunNotFound"},
+          "409": {"$ref": "#/components/responses/RunIncomplete"},
+          "422": {"$ref": "#/components/responses/ValidationError"},
+          "503": {"$ref": "#/components/responses/ProviderUnavailable"}
+        }
+      }
+    }
+  },
+  "components": {
+    "parameters": {
+      "RunId": {
+        "name": "run_id",
+        "in": "path",
+        "required": true,
+        "schema": {"type": "string", "pattern": "^run_[a-zA-Z0-9_-]{8,64}$"}
+      }
+    },
+    "responses": {
+      "ValidationError": {
+        "description": "Request validation failed",
+        "content": {"application/problem+json": {"schema": {"$ref": "#/components/schemas/ProblemDetails"}}}
+      },
+      "RunNotFound": {
+        "description": "Run ID not found",
+        "content": {"application/problem+json": {"schema": {"$ref": "#/components/schemas/ProblemDetails"}}}
+      },
+      "RunIncomplete": {
+        "description": "Run exists but is incomplete or has no successful exploit to replay",
+        "content": {"application/problem+json": {"schema": {"$ref": "#/components/schemas/ProblemDetails"}}}
+      },
+      "ProviderUnavailable": {
+        "description": "Live mode requested but the model provider is unavailable",
+        "content": {"application/problem+json": {"schema": {"$ref": "#/components/schemas/ProblemDetails"}}}
+      }
+    },
+    "schemas": {
+      "AttackFamily": {
+        "type": "string",
+        "enum": ["indirect_prompt_injection", "unauthorized_tool_use", "memory_poisoning"]
+      },
+      "Severity": {"type": "string", "enum": ["low", "medium", "high", "critical"]},
+      "RunStatus": {"type": "string", "enum": ["pending", "running", "completed", "failed", "cancelled"]},
+      "ExecutionMode": {
+        "type": "string",
+        "enum": ["live", "deterministic_fixture"],
+        "description": "Fixture mode must be labelled in traces and the UI."
+      },
+      "StoppingReason": {
+        "type": "string",
+        "enum": [
+          "all_attack_families_completed",
+          "attempt_budget_exhausted",
+          "time_budget_exhausted",
+          "token_budget_exhausted",
+          "cost_budget_exhausted",
+          "provider_error",
+          "cancelled",
+          "internal_error"
+        ]
+      },
+      "RunBudget": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "max_attempts_per_family": {"type": "integer", "minimum": 1, "maximum": 5, "default": 3},
+          "model_call_timeout_seconds": {"type": "integer", "minimum": 1, "maximum": 120, "default": 30},
+          "run_timeout_seconds": {"type": "integer", "minimum": 10, "maximum": 900, "default": 180},
+          "max_total_tokens": {"type": "integer", "minimum": 1000, "maximum": 200000, "default": 30000},
+          "max_cost_usd": {"type": "number", "minimum": 0, "maximum": 25, "default": 1}
+        }
+      },
+      "ToolDefinition": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "description", "parameters"],
+        "properties": {
+          "name": {"type": "string"},
+          "description": {"type": "string"},
+          "parameters": {"type": "object", "additionalProperties": true}
+        }
+      },
+      "TargetProfile": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "name", "system_prompt", "tools", "allowed_resources", "forbidden_resources"],
+        "properties": {
+          "id": {"type": "string", "const": "bank_agent_v1"},
+          "name": {"type": "string"},
+          "system_prompt": {"type": "string"},
+          "tools": {"type": "array", "items": {"$ref": "#/components/schemas/ToolDefinition"}},
+          "allowed_resources": {"type": "array", "items": {"type": "string"}},
+          "forbidden_resources": {"type": "array", "items": {"type": "string"}}
+        }
+      },
+      "AttackRunRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["execution_mode"],
+        "properties": {
+          "target_id": {"type": "string", "const": "bank_agent_v1", "default": "bank_agent_v1"},
+          "attack_families": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {"$ref": "#/components/schemas/AttackFamily"}
+          },
+          "execution_mode": {"$ref": "#/components/schemas/ExecutionMode"},
+          "budget": {"$ref": "#/components/schemas/RunBudget"}
+        }
+      },
+      "ResourceLinks": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["status", "trace"],
+        "properties": {
+          "status": {"type": "string", "format": "uri-reference"},
+          "trace": {"type": "string", "format": "uri-reference"}
+        }
+      },
+      "AttackRunAccepted": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["run_id", "status", "created_at", "links"],
+        "properties": {
+          "run_id": {"type": "string"},
+          "status": {"$ref": "#/components/schemas/RunStatus"},
+          "created_at": {"type": "string", "format": "date-time"},
+          "links": {"$ref": "#/components/schemas/ResourceLinks"}
+        }
+      },
+      "AttackRunSummary": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "run_id", "status", "execution_mode", "attack_families", "plans_evaluated",
+          "attempts_executed", "successful_findings", "started_at"
+        ],
+        "properties": {
+          "run_id": {"type": "string"},
+          "status": {"$ref": "#/components/schemas/RunStatus"},
+          "execution_mode": {"$ref": "#/components/schemas/ExecutionMode"},
+          "attack_families": {"type": "array", "items": {"$ref": "#/components/schemas/AttackFamily"}},
+          "plans_evaluated": {"type": "integer", "minimum": 0},
+          "attempts_executed": {"type": "integer", "minimum": 0},
+          "successful_findings": {"type": "integer", "minimum": 0},
+          "stopping_reason": {
+            "oneOf": [{"$ref": "#/components/schemas/StoppingReason"}, {"type": "null"}]
+          },
+          "started_at": {"type": "string", "format": "date-time"},
+          "ended_at": {"type": ["string", "null"], "format": "date-time"}
+        }
+      },
+      "AttackPlan": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["family", "objective", "steps", "success_condition", "expected_severity", "planner_summary"],
+        "properties": {
+          "family": {"$ref": "#/components/schemas/AttackFamily"},
+          "objective": {"type": "string"},
+          "steps": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+          "success_condition": {"type": "string"},
+          "expected_severity": {"$ref": "#/components/schemas/Severity"},
+          "planner_summary": {
+            "type": "string",
+            "description": "Safe summary only; private chain-of-thought is never stored."
+          }
+        }
+      },
+      "ToolCallRecord": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "tool", "arguments", "authorized", "policy_rule_id", "result_summary",
+          "secret_marker_exposed", "timestamp"
+        ],
+        "properties": {
+          "tool": {"type": "string"},
+          "arguments": {"type": "object", "additionalProperties": true},
+          "authorized": {"type": "boolean"},
+          "policy_rule_id": {"type": "string"},
+          "requested_resource": {"type": ["string", "null"]},
+          "result_summary": {"type": "string"},
+          "secret_marker_exposed": {"type": "boolean"},
+          "timestamp": {"type": "string", "format": "date-time"}
+        }
+      },
+      "MemoryDiff": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["before", "after", "added", "modified", "removed"],
+        "properties": {
+          "before": {"type": "object", "additionalProperties": {"type": "string"}},
+          "after": {"type": "object", "additionalProperties": {"type": "string"}},
+          "added": {"type": "object", "additionalProperties": {"type": "string"}},
+          "modified": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["old", "new"],
+              "properties": {"old": {"type": "string"}, "new": {"type": "string"}}
+            }
+          },
+          "removed": {"type": "array", "items": {"type": "string"}}
+        }
+      },
+      "ModelCallMetadata": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["provider", "model", "prompt_version", "latency_ms"],
+        "properties": {
+          "provider": {"type": "string"},
+          "model": {"type": "string"},
+          "prompt_version": {"type": "string"},
+          "latency_ms": {"type": "number", "minimum": 0},
+          "input_tokens": {"type": ["integer", "null"], "minimum": 0},
+          "output_tokens": {"type": ["integer", "null"], "minimum": 0},
+          "estimated_cost_usd": {"type": ["number", "null"], "minimum": 0},
+          "error_code": {"type": ["string", "null"]}
+        }
+      },
+      "AttackAttempt": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "attempt_id", "family", "payload", "target_response", "tool_calls",
+          "retrieved_content", "memory_diff", "duration_ms", "timestamp"
+        ],
+        "properties": {
+          "attempt_id": {"type": "integer", "minimum": 1},
+          "family": {"$ref": "#/components/schemas/AttackFamily"},
+          "payload": {"type": "string"},
+          "target_response": {"type": "string"},
+          "tool_calls": {"type": "array", "items": {"$ref": "#/components/schemas/ToolCallRecord"}},
+          "retrieved_content": {"type": "array", "items": {"type": "string"}},
+          "memory_diff": {"$ref": "#/components/schemas/MemoryDiff"},
+          "adaptation_notes": {"type": ["string", "null"]},
+          "failed_success_predicate": {"type": ["string", "null"]},
+          "model_call": {
+            "oneOf": [{"$ref": "#/components/schemas/ModelCallMetadata"}, {"type": "null"}]
+          },
+          "duration_ms": {"type": "number", "minimum": 0},
+          "timestamp": {"type": "string", "format": "date-time"}
+        }
+      },
+      "Finding": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "family", "success", "severity", "objective", "evidence",
+          "reproduction_steps", "mitigation", "attempt_id"
+        ],
+        "properties": {
+          "family": {"$ref": "#/components/schemas/AttackFamily"},
+          "success": {"type": "boolean"},
+          "severity": {"$ref": "#/components/schemas/Severity"},
+          "objective": {"type": "string"},
+          "evidence": {"type": "string"},
+          "reproduction_steps": {"type": "array", "items": {"type": "string"}},
+          "mitigation": {"type": "string"},
+          "attempt_id": {"type": "integer", "minimum": 1},
+          "policy_rule_id": {"type": ["string", "null"]}
+        }
+      },
+      "TraceMetrics": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["attempts_executed", "successful_findings", "exploit_success_rate", "duration_ms"],
+        "properties": {
+          "attempts_executed": {"type": "integer", "minimum": 0},
+          "successful_findings": {"type": "integer", "minimum": 0},
+          "exploit_success_rate": {"type": "number", "minimum": 0, "maximum": 100},
+          "duration_ms": {"type": "number", "minimum": 0},
+          "total_tokens": {"type": ["integer", "null"], "minimum": 0},
+          "estimated_cost_usd": {"type": ["number", "null"], "minimum": 0}
+        }
+      },
+      "ExecutionTrace": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "schema_version", "run_id", "status", "execution_mode", "target_profile",
+          "budget", "plans", "attempts", "findings", "metrics", "stopping_reason",
+          "start_time", "is_prerecorded"
+        ],
+        "properties": {
+          "schema_version": {"type": "string", "const": "1.1"},
+          "run_id": {"type": "string"},
+          "status": {"$ref": "#/components/schemas/RunStatus"},
+          "execution_mode": {"$ref": "#/components/schemas/ExecutionMode"},
+          "target_profile": {"$ref": "#/components/schemas/TargetProfile"},
+          "defense_profile": {
+            "oneOf": [{"$ref": "#/components/schemas/DefenseProfile"}, {"type": "null"}]
+          },
+          "budget": {"$ref": "#/components/schemas/RunBudget"},
+          "plans": {"type": "array", "items": {"$ref": "#/components/schemas/AttackPlan"}},
+          "attempts": {"type": "array", "items": {"$ref": "#/components/schemas/AttackAttempt"}},
+          "findings": {"type": "array", "items": {"$ref": "#/components/schemas/Finding"}},
+          "metrics": {"$ref": "#/components/schemas/TraceMetrics"},
+          "stopping_reason": {"$ref": "#/components/schemas/StoppingReason"},
+          "start_time": {"type": "string", "format": "date-time"},
+          "end_time": {"type": ["string", "null"], "format": "date-time"},
+          "is_prerecorded": {"type": "boolean"}
+        }
+      },
+      "DefenseProfile": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "name": {"type": "string", "default": "Standard Hardened Defense"},
+          "isolate_untrusted_documents": {"type": "boolean", "default": true},
+          "strict_tool_authorization": {"type": "boolean", "default": true},
+          "allowed_transfer_recipients": {
+            "type": "array",
+            "items": {"type": "string"},
+            "default": ["ACC_1001", "ACC_1002"]
+          },
+          "transfer_amount_limit": {"type": "number", "exclusiveMinimum": 0, "default": 1000},
+          "validate_memory_writes": {"type": "boolean", "default": true}
+        }
+      },
+      "DefenseValidationRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["baseline_run_id", "defense_profile"],
+        "properties": {
+          "baseline_run_id": {"type": "string", "pattern": "^run_[a-zA-Z0-9_-]{8,64}$"},
+          "defense_profile": {"$ref": "#/components/schemas/DefenseProfile"},
+          "run_adaptive_bypass": {"type": "boolean", "default": true},
+          "adaptive_budget": {"$ref": "#/components/schemas/RunBudget"}
+        }
+      },
+      "LegitimateTaskResult": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "passed", "evidence"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "enum": ["balance_lookup", "permitted_transfer", "policy_lookup", "safe_session_note"]
+          },
+          "passed": {"type": "boolean"},
+          "evidence": {"type": "string"}
+        }
+      },
+      "EvaluationReport": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "baseline_run_id", "baseline_findings_count", "baseline_success_rate",
+          "exact_replay_total", "exact_replay_blocked", "exact_replay_findings_count",
+          "exact_replay_blocking_rate", "adaptive_bypass_executed",
+          "adaptive_bypass_findings_count", "adaptive_bypass_rate",
+          "legitimate_tasks", "legitimate_task_retention_rate", "status"
+        ],
+        "properties": {
+          "baseline_run_id": {"type": "string"},
+          "baseline_findings_count": {"type": "integer", "minimum": 0},
+          "baseline_success_rate": {"type": "number", "minimum": 0, "maximum": 100},
+          "exact_replay_total": {"type": "integer", "minimum": 0},
+          "exact_replay_blocked": {"type": "integer", "minimum": 0},
+          "exact_replay_findings_count": {"type": "integer", "minimum": 0},
+          "exact_replay_blocking_rate": {"type": "number", "minimum": 0, "maximum": 100},
+          "adaptive_bypass_executed": {"type": "boolean"},
+          "adaptive_bypass_run_id": {"type": ["string", "null"]},
+          "adaptive_bypass_findings_count": {"type": "integer", "minimum": 0},
+          "adaptive_bypass_rate": {"type": "number", "minimum": 0, "maximum": 100},
+          "legitimate_tasks": {
+            "type": "array",
+            "items": {"$ref": "#/components/schemas/LegitimateTaskResult"}
+          },
+          "legitimate_task_retention_rate": {"type": "number", "minimum": 0, "maximum": 100},
+          "status": {"type": "string"}
+        }
+      },
+      "HealthResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["status", "service", "api_ready", "storage_ready", "provider"],
+        "properties": {
+          "status": {"type": "string", "enum": ["healthy", "degraded", "unhealthy"]},
+          "service": {"type": "string", "const": "AgentBreak"},
+          "api_ready": {"type": "boolean"},
+          "storage_ready": {"type": "boolean"},
+          "provider": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["configured", "reachable", "provider", "model"],
+            "properties": {
+              "configured": {"type": "boolean"},
+              "reachable": {"type": ["boolean", "null"]},
+              "provider": {"type": "string"},
+              "model": {"type": "string"}
+            }
+          }
+        }
+      },
+      "ProblemDetails": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["type", "title", "status", "detail"],
+        "properties": {
+          "type": {"type": "string", "format": "uri-reference", "default": "about:blank"},
+          "title": {"type": "string"},
+          "status": {"type": "integer", "minimum": 400, "maximum": 599},
+          "detail": {"type": "string"},
+          "instance": {"type": ["string", "null"], "format": "uri-reference"},
+          "error_code": {"type": ["string", "null"]},
+          "validation_errors": {
+            "type": "array",
+            "items": {"type": "object", "additionalProperties": true}
+          }
+        }
+      }
+    }
+  }
+}

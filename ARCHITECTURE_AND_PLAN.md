@@ -6,6 +6,20 @@
 
 ---
 
+## Current-State Correction
+
+The current branch is a deterministic simulator, not yet the autonomous architecture described below. Its planner and payload generator use static Python data, and its mock bank target selects behavior through keyword conditions rather than model tool calls.
+
+The audited gaps and ratings are recorded in `BRANCH_AUDIT.md`. The implementation team must use `TEAMWORK_PROJECT_PROMPT.md` as the current execution contract.
+
+The architecture is considered genuinely autonomous only when:
+
+1. the planner generates target-specific typed plans from the live target profile;
+2. the payload generator revises attacks using recorded failure evidence;
+3. the target is a genuine model-driven tool caller;
+4. deterministic code enforces budgets, permissions, verdicts, and stopping conditions;
+5. exact baseline exploits are replayed before fresh adaptive bypass testing.
+
 ## 🏛️ System Architecture Overview
 
 AgentBreak consists of four core decoupled subsystems designed to autonomously probe, exploit, record, analyze, and defend target AI agents.
@@ -69,22 +83,37 @@ AgentBreak consists of four core decoupled subsystems designed to autonomously p
 
 ## 📅 Implementation Plan & GSD Execution Phases
 
-### Phase 1: Specifications & API Contracts (Hours 0 – 2)
+### Phase 1: Reproducibility & Contracts
 - [x] Create `PROBLEM_STATEMENT.md` and define architectural boundaries.
-- [ ] Define OpenAPI 3.0 contract in `api/schema.json`.
-- [ ] Set up mock payload fixtures for attack traces.
+- [x] Set up a mock payload fixture for attack traces.
+- [x] Define the versioned OpenAPI 3.1 integration contract in `api/openapi.json`.
+- [ ] Add `pyproject.toml`, lockfile, `.env.example`, documented commands, and CI.
+- [ ] Make the deterministic suite pass from a clean checkout.
+- [ ] Define and test stable API and trace schemas.
 
-### Phase 2: Core Engine & Sandbox Setup (Hours 2 – 6)
-- [ ] Build isolated agent sandbox container and tool interceptor.
-- [ ] Implement adaptive adversarial red team prompt generator.
-- [ ] Wire REST & WebSocket orchestration endpoints.
+### Phase 2: Correct Deterministic Foundation
+- [x] Build an in-memory banking sandbox and tool interceptor.
+- [x] Implement initial deterministic security predicates.
+- [ ] Record timestamps, policy identifiers, immutable target snapshots, and true memory diffs.
+- [ ] Persist traces outside process memory.
+- [ ] Replay exact baseline exploits by `baseline_run_id`.
 
-### Phase 3: Frontend Dashboard & Attack Graph (Hours 6 – 10)
-- [ ] Build React UI shell and register target agent form.
-- [ ] Render interactive attack path graphs and execution trace playback.
-- [ ] Connect live API and WebSocket streams to frontend state.
+### Phase 3: Genuine Model-Driven Agents
+- [ ] Implement a structured model-driven attack planner.
+- [ ] Implement an adaptive payload generator using prior failure evidence.
+- [ ] Replace keyword routing with an LLM-backed target using typed fake tools.
+- [ ] Add attempt, time, token, and cost budgets plus explicit stopping reasons.
+- [ ] Record model, prompt-version, latency, usage, and error metadata.
 
-### Phase 4: Defense Validation & Hackathon Demo Prep (Hours 10 – 12)
-- [ ] Implement regression testing engine to evaluate defense profiles.
-- [ ] Seed rich demo data (3 pre-built exploit traces: Indirect Prompt Injection, Tool Privilege Escalation, Memory Poisoning).
-- [ ] Run `hackathon-demo-prep` to generate `DEMO_PITCH.md` and bulletproof stage presentation.
+### Phase 4: Defense Validation
+- [ ] Replay exact successful payloads against defenses.
+- [ ] Run fresh adaptive bypass attempts after replay.
+- [ ] Report regression blocking, adaptive bypass, and legitimate-task retention separately.
+- [ ] Expand legitimate controls beyond balance lookup.
+
+### Phase 5: Dashboard & Demo
+- [ ] Build the dashboard and trace replayer against the stable schema.
+- [ ] Visualize attack evolution, evidence, policy decisions, and defense comparison.
+- [ ] Verify the live model-driven flow.
+- [x] Preserve a prerecorded offline trace fixture.
+- [ ] Clearly label prerecorded data in the UI and presentation.

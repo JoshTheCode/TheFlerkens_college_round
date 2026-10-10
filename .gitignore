@@ -1,11 +1,15 @@
-# Environment
+# Environment & Secrets
 .env
 .env.*
+.venv/
 
-# Node & Frontend
+# Node, Backend & Frontend
 node_modules/
 dist/
 .vite/
+*.db
+store.json*
+*.tmp
 
 # Python & Testing
 __pycache__/
@@ -13,12 +17,14 @@ __pycache__/
 .pytest_cache/
 .coverage
 htmlcov/
+data/
 
-# Backend & Persistence
-*.db
-store.json*
-*.tmp
+# Skills & Agent Tooling
+agent-skills-repo/
+.skills/
 
-# Operating System
+# Operating System & IDE
 .DS_Store
 Thumbs.db
+.vscode/
+.idea/

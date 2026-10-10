@@ -6,6 +6,14 @@ AI agents are increasingly being trusted with tools, private records, external s
 ## Core Problem Statement
 Build **AgentBreak**, an autonomous AI security testing platform that actively probes AI agents to discover exploitable vulnerabilities in their instructions, memory, retrieved content, tool permissions, and multi-step execution. The platform must generate reproducible attack traces, demonstrate vulnerabilities within a controlled sandbox, and evaluate whether security defenses can prevent the same attacks without breaking legitimate agent functionality.
 
+## Definition of Autonomous
+
+AgentBreak is autonomous only when its attacker can inspect a declared target profile, generate a target-specific plan, execute an attempt, observe deterministic evidence, and revise later attempts using the recorded failure context. Static plans, canned payload lists, and keyword-triggered target behavior are permitted as fixtures but do not satisfy the autonomous product claim.
+
+The target must also use genuine model tool selection. Vulnerability outcomes must arise from the target's instructions and enforced tool policies, not from attack-specific `if` statements written to manufacture the result.
+
+All autonomy remains bounded by deterministic attempt, time, token, cost, permission, and stopping controls.
+
 ---
 
 ## Key Platform Features
@@ -17,6 +25,7 @@ Build **AgentBreak**, an autonomous AI security testing platform that actively p
 5. **Defense Validation**: Evaluate proposed mitigations against previously successful attacks and measure whether they prevent exploitation.
 6. **Security Evaluation Dashboard**: Visualize attack paths, vulnerability severity, exploit success rates, and defense effectiveness.
 7. **Regression Testing**: Check whether security improvements introduce new vulnerabilities or interfere with legitimate agent behavior.
+8. **Adaptive Bypass Testing**: After replaying exact known exploits, generate fresh attacks against the defended target and report bypasses separately.
 
 ---
 

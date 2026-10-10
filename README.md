@@ -11,7 +11,7 @@ As AI agents are granted access to private datasets, external APIs, and multi-st
 - **Indirect Prompt Injections**: Exploiting retrieved documents and hidden system prompt overrides.
 - **Tool Privilege Escalation**: Calling restricted tools or parameters outside allowed authorization boundaries.
 - **Agent Memory Poisoning**: Corrupting state buffers across multi-step execution.
-- **Defense Validation**: Measuring mitigation efficacy and regression testing against known exploit vectors.
+- **Defense Validation**: Measuring mitigation efficacy and regression testing against known exploit vectors with exact replay and adaptive bypass evaluations.
 
 ---
 
@@ -19,48 +19,77 @@ As AI agents are granted access to private datasets, external APIs, and multi-st
 
 AgentBreak is organized into 4 modular subsystems across a 4-member role division:
 
-| Subsystem | Member Role | Directory | Stack |
-| :--- | :--- | :--- | :--- |
-| **1. Security Evaluation Dashboard** | Member 1 (Frontend Lead) | `/frontend` | React, TypeScript, Tailwind, Recharts |
-| **2. Core API Contracts** | Member 3 (API Integration Lead) | `/api` | OpenAPI 3.0 (`api/schema.json`) |
-| **3. Autonomous Red Team Engine** | Member 4 (AI/ML Specialist) | `/agents` | Python / Custom Agent SDK |
-| **4. Sandbox & Auditor Backend** | Member 2 (Backend Lead) | `/backend` | Node.js (TypeScript), Express, Test Runner |
+| Subsystem | Member Role | Directory | Stack | Port / Command |
+| :--- | :--- | :--- | :--- | :--- |
+| **1. Security Evaluation Dashboard** | Member 1 (Frontend Lead) | `/frontend` | React, Vite, Tailwind CSS | `npm run dev` (`:5173`) |
+| **2. Target Sandbox & Persistence Backend** | Member 2 (Backend Lead) | `/backend` | Node.js (TypeScript), Express | `npm start` (`:8000`) |
+| **3. Core API Contracts & OpenAPI** | Member 3 (API Integration Lead) | `/api` | FastAPI / OpenAPI 3.1 / JSON Schema | `uvicorn api.app:app` (`:8000`) |
+| **4. Autonomous Red Team Engine** | Member 4 (AI/ML Specialist) | `/agents`, `/scripts` | Python, Pydantic, Pytest | `python -m scripts.run_demo` |
+
+```text
+Target Profile (Banking / Custom)
+        │
+        ▼
+Autonomous Model-Driven Attack Planner
+        │
+        ▼
+Adaptive Payload Generator <─── Failed-attempt evidence feedback
+        │
+        ▼
+Tool-Calling Target Agent (Live LLM or Deterministic Double)
+        │
+        ▼
+Deterministic Tool & Memory Interceptor / Sandbox
+        │
+        ▼
+Deterministic Security Judge
+        │
+        ├──▶ Exact Defense Replay
+        └──▶ Adaptive Bypass Evaluation
+```
 
 ---
 
-## 🚀 Quickstart: Running the Backend
+## 🚀 Quickstart Guides
 
-### Prerequisites
-- Node.js **>= v20** (tested on Node v24.21 with native TypeScript execution)
-- npm **>= v10**
+### 1. Frontend Dashboard (React + Vite)
+```bash
+cd frontend
+npm install
+npm run dev
+```
+Access the dashboard at `http://localhost:5173`.
 
-### 1. Install Dependencies
+### 2. Node.js Target Sandbox Backend
 ```bash
 cd backend
 npm install
+npm test       # Run 5/5 native TypeScript tests
+npm start      # Launch server on http://localhost:8000
 ```
 
-### 2. Start the Server
+### 3. Python AI Red-Team Engine & API Service
 ```bash
-# Production / Normal Start
-npm start
+# Setup virtual environment
+python -m venv .venv
+# Activate: source .venv/bin/activate (Linux/macOS) or .venv\Scripts\Activate.ps1 (Windows)
+pip install -r requirements.lock
 
-# Development Mode (auto-reload on save)
-npm run dev
-```
-The server will start on `http://localhost:8000`.
+# Run test suite (20 passing tests)
+pytest -v tests/
 
-### 3. Run Automated Tests
-```bash
-npm test
+# Run standalone demo CLI (offline / CI-safe mode)
+python -m scripts.run_demo --mode deterministic
+
+# Run API server
+uvicorn api.app:app --host 0.0.0.0 --port 8000 --reload
 ```
-Runs the full unit and API integration test suite via Node's native test runner (`node --test`).
 
 ---
 
 ## 📡 API Endpoints
 
-Full schema specification is defined in [`api/schema.json`](./api/schema.json).
+Canonical API contracts are documented in [`api/openapi.json`](./api/openapi.json) and [`api/schema.json`](./api/schema.json).
 
 | Method | Endpoint | Description |
 | :--- | :--- | :--- |
@@ -73,8 +102,22 @@ Full schema specification is defined in [`api/schema.json`](./api/schema.json).
 
 ---
 
-## 🛡️ Sandbox Components (Subsystem 4)
+## 🛡️ Sandbox & Guardrails
 
-- **`ToolCallInterceptor`** (`backend/src/sandbox/interceptor.ts`): Enforces least-privilege boundaries and detects unauthorized tool calls or privilege escalations.
-- **`MemoryAuditor`** (`backend/src/sandbox/memoryAuditor.ts`): Diffs pre/post memory snapshots to detect prompt injections and buffer corruption.
-- **`TraceLogger`** (`backend/src/sandbox/traceLogger.ts`): Records deterministic, step-by-step audit logs enabling exact exploit playback.
+- **`ToolCallInterceptor`**: Enforces least-privilege boundaries and intercepts unauthorized tool calls.
+- **`MemoryAuditor`**: Diffs pre/post memory snapshots to detect prompt injections and buffer corruption.
+- **`TraceLogger` / `LocalTraceStorage`**: Records deterministic step-by-step audit logs enabling exact exploit playback.
+- **`Budgets`**: Hard attempt limits, timeout limits, token delta budgets, and explicit execution mode tags (`live`, `deterministic_fallback`, `prerecorded`).
+
+---
+
+## 📚 Project Documentation
+
+- [docs/PROBLEM_STATEMENT.md](docs/PROBLEM_STATEMENT.md): Problem definition & requirements
+- [docs/ARCHITECTURE_AND_PLAN.md](docs/ARCHITECTURE_AND_PLAN.md): Subsystem architecture & plan
+- [docs/AGENT_IMPLEMENTATION_PLAN.md](docs/AGENT_IMPLEMENTATION_PLAN.md): AI Agent implementation design
+- [docs/BRANCH_AUDIT.md](docs/BRANCH_AUDIT.md): Defect audit and resolution addendum
+- [docs/TEAMWORK_PROJECT_PROMPT.md](docs/TEAMWORK_PROJECT_PROMPT.md): Teamwork prompts & workflows
+- [docs/AGENTS.md](docs/AGENTS.md) / [AGENTS.md](AGENTS.md): Agent role division
+- [docs/SKILLS_GUIDE.md](docs/SKILLS_GUIDE.md) / [SKILLS_GUIDE.md](SKILLS_GUIDE.md): Agent skills reference
+- [STATE.md](STATE.md): Hackathon state and progress ledger
