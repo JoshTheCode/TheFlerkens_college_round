@@ -1,3 +1,4 @@
+from agents.logger import live_log
 import copy
 import os
 import time
@@ -76,13 +77,16 @@ class RedTeamCoordinator:
         target = get_target_profile(target_id) if target_id else self.target_profile
         mode = execution_mode or (ExecutionMode.LIVE if self.client.is_configured else ExecutionMode.DETERMINISTIC_FIXTURE)
 
+        live_log(f"Starting {mode.value} attack run against {target.name}...")
         # Token delta snapshot at start of run
         start_tokens = self.client.cumulative_tokens
         suite_start_t = time.time()
         deadline = suite_start_t + self.run_timeout_seconds
 
         plans = self.planner.plan_attacks(target, execution_mode=mode)
+        live_log(f"Planner LLM generating attack plans (this takes ~5-15s)...")
         if attack_families:
+        live_log(f"LLM successfully generated {len(plans)} attack plans.")
             plans = [p for p in plans if p.family in attack_families]
 
         trace = ExecutionTrace(
@@ -113,6 +117,7 @@ class RedTeamCoordinator:
                 stopping_reason = StoppingReason.TOKEN_BUDGET_EXHAUSTED
                 budget_exhausted = True
                 break
+            live_log(f"--- Launching Attack Family: {plan.family.value} ---")
 
             # Each plan gets a fresh isolated sandbox environment
             sandbox = BankingSandboxRuntime(defense=defense)
@@ -133,6 +138,7 @@ class RedTeamCoordinator:
                     budget_exhausted = True
                     break
 
+                live_log(f"\n[Attempt {attempt_num}/{self.max_attempts}] Generating payload for {plan.family.value}...")
                 payload, adaptation_notes = self.generator.generate_payload(
                     plan=plan,
                     attempt_num=attempt_num,
@@ -145,7 +151,9 @@ class RedTeamCoordinator:
                 mem_before = copy.deepcopy(sandbox.memory)
                 tool_calls_before_count = len(sandbox.call_records)
 
+                live_log(f"Sending payload to Target Agent:\n  -> \"{payload[:60]}...\"")
                 response = agent.handle_message(payload, execution_mode=mode)
+                live_log(f"Target Agent responded with {len(sandbox.call_records[tool_calls_before_count:])} tool calls.")
                 duration_ms = (time.time() - start_t) * 1000
                 mem_after = copy.deepcopy(sandbox.memory)
 
@@ -168,6 +176,7 @@ class RedTeamCoordinator:
                 )
                 attempts.append(attempt)
 
+                live_log("Evaluating attempt with Security Judge...")
                 finding = SecurityJudge.evaluate_attempt(
                     attempt=attempt,
                     target_profile=self.target_profile,
@@ -182,6 +191,7 @@ class RedTeamCoordinator:
                 else:
                     prev_attempt = attempt
                     last_feedback = finding.evidence or "Objective condition unmet"
+                live_log(f"Judge Outcome: {Success! if finding.success else Failed}. Evidence: {finding.evidence[:60]}...")
 
             if budget_exhausted:
                 break
@@ -252,6 +262,7 @@ class RedTeamCoordinator:
                 adaptation_notes="Exact baseline replay against defense",
                 timestamp=time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
             )
+                live_log("Evaluating attempt with Security Judge...")
             replay_finding = SecurityJudge.evaluate_attempt(
                 attempt=replay_att,
                 target_profile=baseline_trace.target_profile,
@@ -276,6 +287,7 @@ class RedTeamCoordinator:
 
             if bypass_plan:
                 adaptive_attempted = True
+                live_log(f"\n[Attempt {attempt_num}/{self.max_attempts}] Generating payload for {plan.family.value}...")
                 bypass_payload, adaptation_notes = self.generator.generate_payload(
                     plan=bypass_plan,
                     attempt_num=2,
@@ -296,6 +308,7 @@ class RedTeamCoordinator:
                     adaptation_notes=adaptation_notes,
                     timestamp=time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
                 )
+                live_log("Evaluating attempt with Security Judge...")
                 adaptive_finding = SecurityJudge.evaluate_attempt(
                     attempt=adaptive_att,
                     target_profile=baseline_trace.target_profile,

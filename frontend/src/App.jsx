@@ -123,6 +123,24 @@ export default function App() {
   const [selectedMode, setSelectedMode] = useState('deterministic_fixture'); // 'deterministic_fixture' | 'live'
   const [health, setHealth] = useState(null);
   const [loading, setLoading] = useState(false);
+
+  const [liveLogs, setLiveLogs] = useState([]);
+
+  useEffect(() => {
+    let interval;
+    if (loading) {
+      interval = setInterval(() => {
+        fetch(`${API_BASE}/api/v1/attacks/logs`, { headers: getRequestHeaders() })
+          .then(r => r.json())
+          .then(data => { if (data.logs) setLiveLogs(data.logs); })
+          .catch(e => console.error(e));
+      }, 1000);
+    } else {
+      setLiveLogs([]);
+    }
+    return () => clearInterval(interval);
+  }, [loading]);
+
   const [trace, setTrace] = useState(null);
   const [defenseReport, setDefenseReport] = useState(null);
   const [selectedFinding, setSelectedFinding] = useState(null);
@@ -1139,6 +1157,15 @@ export default function App() {
                   <Icon name="zap" size="sm" />
                   <span>{loading ? 'Red-Teaming in Progress...' : 'Launch Red-Team Attack Suite'}</span>
                 </button>
+
+              {loading && (
+                <div style={{ marginTop: '24px', background: '#0f172a', borderRadius: '12px', padding: '16px', color: '#10b981', fontFamily: 'monospace', fontSize: '13px', maxHeight: '300px', overflowY: 'auto', textAlign: 'left', boxShadow: 'inset 0 2px 8px rgba(0,0,0,0.5)' }}>
+                  <div style={{ color: '#94a3b8', marginBottom: '8px', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1px' }}>Terminal - Live Execution Log</div>
+                  {liveLogs.map((l, i) => <div key={i} style={{ marginBottom: '4px' }}>{'>'} {l}</div>)}
+                  {liveLogs.length === 0 && <div style={{ color: '#64748b', fontStyle: 'italic' }}>Initializing secure environment...</div>}
+                </div>
+              )}
+
               </div>
             </div>
           </div>

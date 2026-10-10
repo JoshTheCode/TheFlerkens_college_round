@@ -4,6 +4,8 @@ from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from agents.coordinator import RedTeamCoordinator
+from agents.logger import stream_logs, clear_logs
+
 from agents.models import (
     AttackFamily,
     DefenseProfile,
@@ -104,6 +106,8 @@ def start_attack_run(
     req: Optional[AttackRunRequest] = None,
     request: Request = None,
 ) -> ExecutionTrace:
+    clear_logs()
+
     if request:
         api_key = request.headers.get("x-api-key") or (
             request.headers.get("authorization", "").replace("Bearer ", "").strip()
@@ -178,3 +182,8 @@ def validate_defense(req: DefenseValidationRequest) -> EvaluationReport:
             status_code=status.HTTP_404_NOT_FOUND,
             detail=str(e),
         )
+
+@app.get("/api/v1/attacks/logs", operation_id="getAttackLogs")
+def get_attack_logs() -> Dict[str, Any]:
+    return {"logs": stream_logs}
+
