@@ -107,6 +107,17 @@ curl -X POST http://localhost:8000/api/v1/attacks/start
 ```bash
 curl -X POST http://localhost:8000/api/v1/defenses/validate \
   -H "Content-Type: application/json" \
-  -d '{"isolate_untrusted_documents": true, "strict_tool_authorization": true, "validate_memory_writes": true}'
+  -d '{"baseline_run_id": "<BASELINE_RUN_ID>", "defense_profile": {"isolate_untrusted_documents": true, "strict_tool_authorization": true, "validate_memory_writes": true}}'
 ```
+
+### 6. Run Complete Single-Slice Demo CLI
+
+```bash
+# Offline / Deterministic Mode (CI-safe, runs without API key)
+python -m scripts.run_demo --mode deterministic
+
+# Live Autonomous Mode (requires OPENAI_API_KEY in environment or .env)
+python -m scripts.run_demo --mode live
+```
+
 

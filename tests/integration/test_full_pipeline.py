@@ -73,9 +73,27 @@ def test_multiple_legitimate_controls_retention():
     assert report.exact_replay_blocking_rate == 100.0
 
 
+def test_budget_token_enforcement():
+    # Configure tiny token budget and simulate client token accumulation
+    coordinator = RedTeamCoordinator()
+    coordinator.max_tokens_budget = 50
+    coordinator.client.cumulative_tokens = 100
+    trace = coordinator.run_attack_suite()
+    assert trace.stopping_reason == "Token budget exceeded"
+
+
+def test_execution_mode_labeling():
+    # Unconfigured client must be labeled deterministic_fallback
+    coordinator = RedTeamCoordinator()
+    trace = coordinator.run_attack_suite()
+    assert trace.execution_mode == "deterministic_fallback"
+    assert trace.is_prerecorded is False
+
+
 def test_model_client_unconfigured_error():
     # Creating client with empty key should raise when called
     client = ModelClient(api_key="")
     with pytest.raises(RuntimeError) as exc_info:
         client.call_chat_completion([{"role": "user", "content": "hi"}])
     assert "OPENAI_API_KEY is not set" in str(exc_info.value)
+

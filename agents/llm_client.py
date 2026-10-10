@@ -20,6 +20,7 @@ class ModelClient:
         self.api_key = api_key or os.getenv("OPENAI_API_KEY", "")
         self.model = model or os.getenv("AGENTBREAK_MODEL", "openai/gpt-4o-mini")
         self.timeout_seconds = float(os.getenv("AGENTBREAK_MODEL_TIMEOUT_SECONDS", str(timeout_seconds)))
+        self.cumulative_tokens = 0
 
     @property
     def is_configured(self) -> bool:
@@ -61,4 +62,8 @@ class ModelClient:
                 raise RuntimeError(
                     f"Model provider returned error HTTP {resp.status_code}: {resp.text[:200]}"
                 )
-            return resp.json()
+            data = resp.json()
+            if "usage" in data and "total_tokens" in data["usage"]:
+                self.cumulative_tokens += int(data["usage"]["total_tokens"])
+            return data
+

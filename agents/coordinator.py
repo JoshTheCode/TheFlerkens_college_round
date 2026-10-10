@@ -57,19 +57,27 @@ class RedTeamCoordinator:
         self.generator = AutonomousPayloadGenerator(model_client=self.client)
         self.max_attempts = int(os.getenv("AGENTBREAK_MAX_ATTEMPTS", str(max_attempts)))
         self.run_timeout_seconds = float(os.getenv("AGENTBREAK_RUN_TIMEOUT_SECONDS", str(run_timeout_seconds)))
+        self.max_tokens_budget = int(os.getenv("AGENTBREAK_MAX_TOKENS_BUDGET", "20000"))
 
     def run_attack_suite(
         self,
         run_id: Optional[str] = None,
         defense: Optional[DefenseProfile] = None,
+        attack_families: Optional[List[AttackFamily]] = None,
     ) -> ExecutionTrace:
         if not run_id:
             run_id = f"run_{uuid.uuid4().hex[:8]}"
 
         plans = self.planner.plan_attacks(self.target_profile)
+        if attack_families:
+            plans = [p for p in plans if p.family in attack_families]
+
+        mode = "live" if self.client.is_configured else "deterministic_fallback"
+
         trace = ExecutionTrace(
             run_id=run_id,
             status=RunStatus.RUNNING,
+            execution_mode=mode,
             target_profile=copy.deepcopy(self.target_profile),
             defense_profile=copy.deepcopy(defense) if defense else None,
             plans=plans,
@@ -88,6 +96,11 @@ class RedTeamCoordinator:
                 stopping_reason = "Run timeout budget exceeded"
                 break
 
+            # Check token budget
+            if self.client.cumulative_tokens > self.max_tokens_budget:
+                stopping_reason = "Token budget exceeded"
+                break
+
             # Each plan gets a fresh isolated sandbox environment
             sandbox = BankingSandboxRuntime(defense=defense)
             agent = ToolCallingBankAgent(sandbox=sandbox, model_client=self.client)
@@ -97,6 +110,10 @@ class RedTeamCoordinator:
 
             # Bounded attempts
             for attempt_num in range(1, self.max_attempts + 1):
+                if self.client.cumulative_tokens > self.max_tokens_budget:
+                    stopping_reason = "Token budget exceeded"
+                    break
+
                 payload, adaptation_notes = self.generator.generate_payload(
                     plan=plan,
                     attempt_num=attempt_num,
@@ -165,9 +182,11 @@ class RedTeamCoordinator:
         trace.attempts = attempts
         trace.findings = findings
         trace.total_findings_count = sum(1 for f in findings if f.success)
+        trace.total_tokens_used = self.client.cumulative_tokens
         trace.status = RunStatus.COMPLETED
         trace.stopping_reason = stopping_reason
         trace.end_time = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+
 
         # Persist trace locally
         self.storage.save_trace(trace)
