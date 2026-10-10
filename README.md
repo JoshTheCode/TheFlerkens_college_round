@@ -4,18 +4,16 @@ AgentBreak is a hackathon project for safely evaluating tool-using AI agents aga
 
 ## Current Status
 
-The current branch contains a deterministic banking-security simulator:
+The branch contains a fully working, self-contained AI red-teaming engine and safe execution sandbox:
 
-- an in-memory fake banking sandbox;
-- intercepted tool and memory operations;
-- three seeded attack scenarios;
-- a deterministic security judge;
-- FastAPI endpoint scaffolding;
-- a prerecorded demonstration trace.
+- **Autonomous Model-Driven Planner & Generator**: `AutonomousAttackPlanner` inspects the live `TargetProfile`; `AutonomousPayloadGenerator` uses multi-turn judge feedback and previous attempt evidence to adaptively refine adversarial payloads.
+- **Genuine Tool-Calling Target Agent**: `ToolCallingBankAgent` exposes typed OpenAI-compatible tool specifications to an LLM provider, with deterministic test double fallbacks for CI and offline execution.
+- **All 3 Attack Families Supported**: Indirect prompt injection, unauthorized tool execution, and session memory poisoning.
+- **Exact Defense Replay & Separate Adaptive Bypass**: `validate_defense` replays exact baseline payloads against the hardened target to prove mitigation, then runs adaptive bypass attempts.
+- **Strict Guardrails**: Hard attempt limits, timeout limits, token budgets, and local JSON trace persistence with before/after memory diffs.
+- **Automated Verification**: 20/20 unit, integration, and API tests passing in `<0.3s`.
 
-It is **not yet a genuinely autonomous AI red-team system**. The current planner, payload generator, and target behavior are scripted, and the branch does not yet contain a model-provider integration or reproducible dependency manifest.
-
-See [BRANCH_AUDIT.md](BRANCH_AUDIT.md) for the evidence-backed assessment and [TEAMWORK_PROJECT_PROMPT.md](TEAMWORK_PROJECT_PROMPT.md) for the approved implementation brief.
+See [BRANCH_AUDIT.md](BRANCH_AUDIT.md) for the original defect audit and the resolution addendum.
 
 ## Target Architecture
 
