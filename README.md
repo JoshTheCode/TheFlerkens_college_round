@@ -27,6 +27,42 @@ Traditional LLM testing relies on static prompt evaluations. As AI agents gain a
 
 ---
 
+## 💡 Why AgentBreak is Different
+
+| Dimension | Typical LLM Red-Teaming | AgentBreak Autonomous Platform |
+| :--- | :--- | :--- |
+| **Evidence Basis** | Subjective LLM-as-a-judge scores | **Deterministic runtime evidence** (exact intercepted tool parameters, memory diffs, leaked secrets) |
+| **Audit Fidelity** | Ephemeral chat transcripts | **Immutable execution traces** with full payload reproduction, tool call histories, and timing |
+| **Defense Verification** | Theoretical prompt updates | **Exact exploit replay** re-running past breaches in isolated hardened sandboxes |
+| **Evasion Testing** | Single-shot tests | **Adaptive bypass evaluation** using past judge failure feedback to simulate evolving attackers |
+| **Utility Preservation** | Defenses often break agents | **Legitimate control retention** proving hardened guardrails do not disrupt legitimate workflows |
+
+---
+
+## ⏱️ Three-Minute Judge Demo Sequence
+
+- **Minute 1: Target Inspection & Attack Launch (Step 1)**
+  - Open `http://localhost:5173`.
+  - Review the default **Retail Banking Assistant** victim profile, its privileged tools (`transfer_funds`, `read_customer_record`, `save_session_note`), and target system prompt.
+  - Keep the default **Deterministic Sandbox** mode (or toggle Live Model with your API key).
+  - Click **Launch Red-Team Attack Suite** — observe the streaming hacker terminal console tracing the orchestrator's decision loop in real-time.
+- **Minute 2: Exploit Inspection & Visual Attack-Path (Step 2)**
+  - Review the **3 of 3 Attack Vectors Exploited** banner.
+  - Select each finding to view the **Multi-Turn Attack Path Analysis**:
+    `Adversarial Input → Retrieved Untrusted Content → Agent Decision → Restricted Tool Call → Verified Policy Violation`
+  - Inspect the concrete evidence: unauthorized wire transfer to `ATTACKER_ACCOUNT`, exfiltrated KYC secrets, and poisoned session memory.
+- **Minute 3: Defense Validation & Regression Proof (Step 3)**
+  - Click **Proceed to Step 3: Defense Validation**.
+  - Review the **Hardened Defense Verification Flow**:
+    `Same Exploit Replay → Guardrail Enforced → Blocked Tool Call → No Policy Violation`
+  - Review the **Per-Family Mitigation Ledger**:
+    - **100% Exact Replay Blocking Rate** (all 3 baseline exploits neutralized).
+    - **0% Adaptive Bypass Rate** (hardened defenses held against adaptive attempts).
+    - **Legitimate Utility Preserved** (routine balance queries continue working without false positives).
+  - Click **Export Audit Report (JSON)** to download the audit certificate.
+
+---
+
 ## 🏛️ System Architecture
 
 AgentBreak is built around a canonical Python FastAPI engine with an interactive React dashboard:

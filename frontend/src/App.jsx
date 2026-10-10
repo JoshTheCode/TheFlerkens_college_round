@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Icon } from './components/Icons';
 import { ToastContainer } from './components/Toast';
+import { AttackPathVisual, DefendedPathVisual } from './components/AttackPathVisual';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
@@ -419,16 +420,16 @@ export default function App() {
     if (mode === 'live') {
       return {
         label: 'LIVE AUTONOMOUS LLM',
-        bg: '#fef3c7',
-        color: '#b45309',
-        border: '#fde68a',
+        bg: '#FEF3C7',
+        color: '#B45309',
+        border: '#FDE68A',
       };
     }
     return {
-      label: 'DETERMINISTIC SANDBOX',
-      bg: '#ecfdf5',
-      color: '#047857',
-      border: '#a7f3d0',
+      label: 'DETERMINISTIC FIXTURE BENCHMARK',
+      bg: '#E1F2EC',
+      color: '#2A6A56',
+      border: '#9ED4C2',
     };
   };
 
@@ -441,134 +442,137 @@ export default function App() {
         style={{
           background: '#FFFFFF',
           borderBottom: '1px solid #D0E2EC',
-          padding: '12px 32px',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
+          padding: '12px 20px',
           position: 'sticky',
           top: 0,
           zIndex: 40,
           boxShadow: '0 1px 3px rgba(30,56,66,0.05)',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-          <div
-            style={{
-              width: '36px',
-              height: '36px',
-              borderRadius: '8px',
-              background: '#2B5B6C',
-              color: '#fff',
-              display: 'grid',
-              placeItems: 'center',
-              fontWeight: '800',
-              fontSize: '18px',
-              boxShadow: '0 2px 6px rgba(43,91,108,0.25)',
-            }}
-          >
-            ⚡
-          </div>
-          <div>
-            <div style={{ fontSize: '18px', fontWeight: '800', letterSpacing: '-0.3px', color: '#1E3842', lineHeight: 1.2 }}>
-              AgentBreak <span style={{ color: '#4E90A8', fontSize: '13px', fontWeight: '600' }}>Autonomous AI Red Team</span>
+        <div className="ab-header-inner">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
+            <div
+              style={{
+                width: '36px',
+                height: '36px',
+                borderRadius: '8px',
+                background: '#2B5B6C',
+                color: '#fff',
+                display: 'grid',
+                placeItems: 'center',
+                fontWeight: '800',
+                fontSize: '18px',
+                boxShadow: '0 2px 6px rgba(43,91,108,0.25)',
+                flexShrink: 0,
+              }}
+            >
+              ⚡
             </div>
-            <div style={{ fontSize: '11px', color: '#5B7B88', fontWeight: '500' }}>
-              Multi-Turn Adversarial Verification & Hardened Defense Proof
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: '17px', fontWeight: '800', letterSpacing: '-0.3px', color: '#1E3842', lineHeight: 1.2 }}>
+                AgentBreak <span style={{ color: '#4E90A8', fontSize: '13px', fontWeight: '600' }}>Autonomous AI Red Team</span>
+              </div>
+              <div className="ab-brand-sub" style={{ fontSize: '11px', color: '#5B7B88', fontWeight: '500' }}>
+                Multi-Turn Adversarial Verification & Hardened Defense Proof
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Header Right Actions */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          {/* Truthful Mode Pill */}
-          {currentBadge ? (
-            <span
+          {/* Header Right Actions */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+            {/* Truthful Mode Pill */}
+            {currentBadge ? (
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  background: currentBadge.bg,
+                  color: currentBadge.color,
+                  border: `1px solid ${currentBadge.border}`,
+                  padding: '4px 10px',
+                  borderRadius: '999px',
+                  fontSize: '11px',
+                  fontWeight: '700',
+                  letterSpacing: '0.4px',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: currentBadge.color }}></span>
+                {currentBadge.label}
+              </span>
+            ) : (
+              <div
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '4px 12px',
+                  background: (selectedMode === 'live' && isLiveConfigured) ? '#FEF3C7' : '#E1F2EC',
+                  border: `1px solid ${(selectedMode === 'live' && isLiveConfigured) ? '#FDE68A' : '#9ED4C2'}`,
+                  borderRadius: '999px',
+                  fontSize: '11.5px',
+                  fontWeight: '700',
+                  color: (selectedMode === 'live' && isLiveConfigured) ? '#B45309' : '#2A6A56',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                <span
+                  style={{
+                    width: '7px',
+                    height: '7px',
+                    borderRadius: '50%',
+                    background: (selectedMode === 'live' && isLiveConfigured) ? '#F59E0B' : '#2A6A56',
+                  }}
+                ></span>
+                <span>
+                  {selectedMode === 'live' && isLiveConfigured
+                    ? `Live Model Active (${health?.model || redTeamModel})`
+                    : 'Deterministic Sandbox (Offline Benchmark)'}
+                </span>
+              </div>
+            )}
+
+            {/* Settings & API Key Drawer Button */}
+            <button
+              onClick={() => setIsConfigOpen(true)}
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '6px',
-                background: currentBadge.bg,
-                color: currentBadge.color,
-                border: `1px solid ${currentBadge.border}`,
-                padding: '4px 10px',
-                borderRadius: '999px',
-                fontSize: '11.5px',
-                fontWeight: '700',
-                letterSpacing: '0.4px',
-              }}
-            >
-              <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: currentBadge.color }}></span>
-              {currentBadge.label}
-            </span>
-          ) : (
-            <div
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '4px 12px',
-                background: isLiveConfigured ? '#E1F2EC' : '#EBF4F7',
-                border: `1px solid ${isLiveConfigured ? '#9ED4C2' : '#B4D5E0'}`,
+                padding: '6px 14px',
+                background: isLiveConfigured ? '#EBF4F7' : '#FFFFFF',
+                border: `1px solid ${isLiveConfigured ? '#4E90A8' : '#D0E2EC'}`,
                 borderRadius: '999px',
                 fontSize: '12px',
-                fontWeight: '600',
-                color: isLiveConfigured ? '#2A6A56' : '#2B5B6C',
+                fontWeight: '700',
+                color: '#1E3842',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                whiteSpace: 'nowrap',
               }}
             >
-              <span
-                style={{
-                  width: '8px',
-                  height: '8px',
-                  borderRadius: '50%',
-                  background: isLiveConfigured ? '#10b981' : '#4E90A8',
-                  boxShadow: isLiveConfigured ? '0 0 0 2px rgba(16,185,129,0.2)' : 'none',
-                }}
-              ></span>
-              <span>
-                {isLiveConfigured
-                  ? `Live Red Team Active (${health?.model || redTeamModel})`
-                  : 'Safe Deterministic Engine'}
-              </span>
-            </div>
-          )}
-
-          {/* Settings & API Key Drawer Button */}
-          <button
-            onClick={() => setIsConfigOpen(true)}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '7px',
-              padding: '6px 14px',
-              background: isLiveConfigured ? '#EBF4F7' : '#FFFFFF',
-              border: `1px solid ${isLiveConfigured ? '#4E90A8' : '#D0E2EC'}`,
-              borderRadius: '999px',
-              fontSize: '12.5px',
-              fontWeight: '700',
-              color: '#1E3842',
-              cursor: 'pointer',
-              transition: 'all 0.2s ease',
-            }}
-          >
-            <Icon name="settings" size="sm" />
-            <span>API Key & Model Settings</span>
-            {isLiveConfigured && (
-              <span
-                style={{
-                  width: '6px',
-                  height: '6px',
-                  borderRadius: '50%',
-                  background: '#10b981',
-                }}
-              ></span>
-            )}
-          </button>
+              <Icon name="settings" size="sm" />
+              <span>API Key & Settings</span>
+              {isLiveConfigured && (
+                <span
+                  style={{
+                    width: '6px',
+                    height: '6px',
+                    borderRadius: '50%',
+                    background: '#10b981',
+                  }}
+                ></span>
+              )}
+            </button>
+          </div>
         </div>
       </header>
 
       {/* 3-Step Wizard Navigation */}
-      <div style={{ maxWidth: '1120px', margin: '28px auto 0', padding: '0 24px' }}>
+      <div className="ab-wizard-nav-wrap">
         <div
+          className="ab-wizard-nav-bar"
           style={{
             display: 'flex',
             background: '#FFFFFF',
@@ -681,7 +685,7 @@ export default function App() {
       </div>
 
       {/* Main Content Area */}
-      <main style={{ maxWidth: '1120px', margin: '24px auto 72px', padding: '0 24px' }}>
+      <main className="ab-main-container">
         {/* STEP 1: TARGET VICTIM & ATTACK SUITE CONFIGURATION */}
         {step === 1 && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
@@ -691,7 +695,7 @@ export default function App() {
                 background: '#FFFFFF',
                 borderRadius: '12px',
                 border: '1px solid #D0E2EC',
-                padding: '28px',
+                padding: '24px',
                 boxShadow: '0 1px 3px rgba(30,56,66,0.04)',
               }}
             >
@@ -773,14 +777,7 @@ export default function App() {
               </div>
 
               {/* Target Selector Tabs / Pills */}
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-                  gap: '12px',
-                  marginBottom: '28px',
-                }}
-              >
+              <div className="ab-targets-grid">
                 {targets.map((tgt) => {
                   const isSelected = selectedTarget.id === tgt.id;
                   return (
@@ -844,7 +841,7 @@ export default function App() {
               </div>
 
               {/* Target Details: System Prompt & Tools */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.2fr) minmax(0, 1fr)', gap: '20px' }}>
+              <div className="ab-target-details-grid">
                 {/* System Prompt Box */}
                 <div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
@@ -1054,7 +1051,7 @@ export default function App() {
               </div>
 
               {/* Checkboxes Grid */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '14px' }}>
+              <div className="ab-attack-vectors-grid">
                 {ATTACK_FAMILIES_SPEC.map((family) => {
                   const isChecked = selectedFamilies.includes(family.id);
                   return (
@@ -1195,11 +1192,11 @@ export default function App() {
                   </span>
                   <span>·</span>
                   <span>
-                    Mode: <b>{trace.execution_mode?.toUpperCase()}</b>
+                    Mode: <b>{trace.execution_mode === 'live' ? 'LIVE AUTONOMOUS MODEL' : 'DETERMINISTIC FIXTURE BENCHMARK'}</b>
                   </span>
                   <span>·</span>
                   <span>
-                    Tokens Used: <b>{trace.total_tokens_used}</b>
+                    Tokens: <b>{trace.execution_mode === 'live' ? trace.total_tokens_used : 'N/A (Offline Fixture)'}</b>
                   </span>
                   <span>·</span>
                   <span>
@@ -1208,7 +1205,7 @@ export default function App() {
                 </div>
               </div>
 
-              <div style={{ display: 'flex', gap: '10px' }}>
+              <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
                 <button
                   onClick={() => setStep(1)}
                   style={{
@@ -1249,7 +1246,7 @@ export default function App() {
             </div>
 
             {/* Findings vs Audit Log Tab Toggle */}
-            <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', flexWrap: 'wrap' }}>
               <button
                 onClick={() => setActiveStep2Tab('findings')}
                 style={{
@@ -1283,7 +1280,7 @@ export default function App() {
             </div>
 
             {activeStep2Tab === 'findings' ? (
-              <div style={{ display: 'grid', gridTemplateColumns: '340px 1fr', gap: '20px' }}>
+              <div className="ab-findings-layout-grid">
                 {/* Findings Sidebar List */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                   {(trace.findings || []).map((f, idx) => {
@@ -1344,12 +1341,12 @@ export default function App() {
                       background: '#FFFFFF',
                       borderRadius: '12px',
                       border: '1px solid #D0E2EC',
-                      padding: '24px 28px',
+                      padding: '24px',
                       boxShadow: '0 1px 3px rgba(30,56,66,0.04)',
                     }}
                   >
                     <div style={{ borderBottom: '1px solid #D0E2EC', paddingBottom: '16px', marginBottom: '20px' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
                         <span style={{ fontSize: '12px', fontWeight: '800', color: '#2B5B6C', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                           Exploit Verification Evidence
                         </span>
@@ -1361,6 +1358,13 @@ export default function App() {
                         {selectedFinding.objective}
                       </h3>
                     </div>
+
+                    {/* Attack-Path Visual Analysis */}
+                    <AttackPathVisual
+                      finding={selectedFinding}
+                      attempt={trace.attempts?.find((a) => a.attempt_id === selectedFinding.attempt_id) || trace.attempts?.[0]}
+                      target={selectedTarget}
+                    />
 
                     {/* Exploit Evidence Box */}
                     <div style={{ marginBottom: '20px' }}>
@@ -1544,7 +1548,7 @@ export default function App() {
             </div>
 
             {/* Validation Metrics Grid */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginBottom: '32px' }}>
+            <div className="ab-defense-metrics-grid">
               <div
                 style={{
                   background: '#F4F8FA',
@@ -1629,12 +1633,15 @@ export default function App() {
               </div>
             </div>
 
+            {/* Defended Comparison Path Visual */}
+            <DefendedPathVisual report={defenseReport} target={selectedTarget} />
+
             {/* Per-Family Mitigation Ledger Table */}
             <div style={{ marginBottom: '28px' }}>
               <div style={{ fontSize: '14px', fontWeight: '800', color: '#1E3842', marginBottom: '12px' }}>
                 Per-Family Mitigation Ledger
               </div>
-              <div style={{ overflowX: 'auto', border: '1px solid #D0E2EC', borderRadius: '8px' }}>
+              <div className="ab-responsive-table-wrap">
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', textAlign: 'left' }}>
                   <thead>
                     <tr style={{ background: '#F4F8FA', borderBottom: '1px solid #D0E2EC', color: '#5B7B88' }}>
@@ -2046,7 +2053,7 @@ export default function App() {
                 <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#22c55e' }}></div>
               </div>
               <div style={{ flex: 1, textAlign: 'center', color: '#94a3b8', fontSize: '12px', fontWeight: '500', letterSpacing: '0.5px', marginLeft: '-48px' }}>
-                agentbreak-orchestrator — bash
+                agentbreak-orchestrator — {selectedMode === 'live' ? 'live_model_execution' : 'deterministic_fixture'}
               </div>
             </div>
             
@@ -2056,10 +2063,17 @@ export default function App() {
               fontSize: '13px', overflowY: 'auto', textAlign: 'left', display: 'flex', flexDirection: 'column'
             }}>
               {liveLogs.map((l, i) => <div key={i} style={{ marginBottom: '6px', lineHeight: '1.4' }}>{'>'} {l}</div>)}
-              {liveLogs.length === 0 && <div style={{ color: '#64748b', fontStyle: 'italic' }}>$ initializing autonomous agents...</div>}
+              {liveLogs.length === 0 && (
+                <div style={{ color: '#64748b', fontStyle: 'italic' }}>
+                  {selectedMode === 'live' ? '$ initializing live model client...' : '$ initializing deterministic fixture sandbox...'}
+                </div>
+              )}
               
               <div style={{ marginTop: 'auto', display: 'flex', alignItems: 'center', gap: '8px', paddingTop: '16px' }}>
-                <span style={{ color: '#0ea5e9' }}>$ running execution loop</span><span className="blinking-cursor" style={{ width: '8px', height: '15px', background: '#0ea5e9', display: 'inline-block', animation: 'blink 1s step-end infinite' }}></span>
+                <span style={{ color: '#0ea5e9' }}>
+                  {selectedMode === 'live' ? '$ streaming autonomous model execution loop' : '$ executing deterministic benchmark fixtures'}
+                </span>
+                <span className="blinking-cursor" style={{ width: '8px', height: '15px', background: '#0ea5e9', display: 'inline-block', animation: 'blink 1s step-end infinite' }}></span>
               </div>
             </div>
           </div>
