@@ -51,4 +51,4 @@
 - **Files Modified**:
   - `.gitignore`: Ignore `__pycache__`, `*.pyc`, `node_modules/`, `.venv/`.
 - **Git Branch**: `apiIntegration`
-- **Commit**: Committed API contracts, TypeScript definitions, mock fixtures, FastAPI server, state log, and changelog.
+- **Commit**: `62e4483` (`feat(api): add OpenAPI spec, TypeScript contracts, mock fixtures, and FastAPI server`)
