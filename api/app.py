@@ -46,7 +46,7 @@ coordinator = RedTeamCoordinator()
 
 
 @app.get("/api/v1/health", operation_id="getHealth")
-def health_check(request: Request) -> Dict[str, Any]:
+async def health_check(request: Request) -> Dict[str, Any]:
     api_key_header = None
     model_header = None
     if request:
@@ -54,9 +54,23 @@ def health_check(request: Request) -> Dict[str, Any]:
             request.headers.get("authorization", "").replace("Bearer ", "").strip()
         )
         model_header = request.headers.get("x-red-team-model")
-    api_key_configured = bool(api_key_header or coordinator.client.is_configured or os.getenv("OPENAI_API_KEY"))
+    
     provider_url = os.getenv("OPENAI_BASE_URL", "https://openrouter.ai/api/v1")
     model_name = model_header or coordinator.client.model or os.getenv("AGENTBREAK_MODEL", "openai/gpt-4o-mini")
+    
+    api_key_configured = False
+    test_key = api_key_header or os.getenv("OPENAI_API_KEY")
+    if test_key:
+        import httpx
+        try:
+            async with httpx.AsyncClient(timeout=3.0) as client:
+                resp = await client.get(
+                    f"{provider_url.rstrip('/')}/models",
+                    headers={"Authorization": f"Bearer {test_key}"}
+                )
+                api_key_configured = resp.status_code == 200
+        except Exception:
+            api_key_configured = False
 
     return {
         "status": "healthy",
