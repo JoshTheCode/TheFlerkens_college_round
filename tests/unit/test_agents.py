@@ -1,9 +1,17 @@
+import os
+import shutil
 import pytest
-from agents.coordinator import RedTeamCoordinator
-from agents.judge import SecurityJudge
+from agents.coordinator import RedTeamCoordinator, compute_memory_diff
 from agents.models import AttackFamily, DefenseProfile, Severity
+from agents.storage import LocalTraceStorage
 from agents.target.agent import VulnerableMockBankAgent, get_default_bank_target_profile
 from agents.target.tools import BankingSandboxRuntime
+
+
+@pytest.fixture
+def temp_storage(tmp_path):
+    storage_dir = tmp_path / "traces"
+    return LocalTraceStorage(storage_dir=str(storage_dir))
 
 
 def test_sandbox_tool_interception():
@@ -13,6 +21,18 @@ def test_sandbox_tool_interception():
     assert len(sandbox.call_records) == 1
     assert sandbox.call_records[0].tool == "check_balance"
     assert sandbox.call_records[0].authorized is True
+    assert sandbox.call_records[0].policy_rule_id == "POL-BALANCE-QUERY"
+    assert sandbox.call_records[0].timestamp != ""
+
+
+def test_memory_diff_calculation():
+    before = {"user": "Alice"}
+    after = {"user": "Alice", "status": "COMPROMISED"}
+    diff = compute_memory_diff(before, after)
+    assert "status" in diff.added
+    assert diff.added["status"] == "COMPROMISED"
+    assert diff.removed == []
+    assert diff.modified == {}
 
 
 def test_vulnerable_target_indirect_injection():
@@ -40,15 +60,28 @@ def test_defended_target_blocks_indirect_injection():
     )
 
 
-def test_full_red_team_coordinator_and_defense_validation():
-    coordinator = RedTeamCoordinator()
-    # Baseline run
+def test_trace_persistence_and_exact_replay(temp_storage):
+    coordinator = RedTeamCoordinator(storage=temp_storage)
+
+    # 1. Baseline Run
     baseline_trace = coordinator.run_attack_suite()
     assert baseline_trace.total_findings_count >= 2
 
-    # Validate defense
+    # Verify persisted to disk
+    persisted = temp_storage.get_trace(baseline_trace.run_id)
+    assert persisted is not None
+    assert persisted.run_id == baseline_trace.run_id
+    assert len(persisted.findings) == len(baseline_trace.findings)
+
+    # 2. Defense Validation with Exact Replay
     defense = DefenseProfile()
-    report = coordinator.validate_defense(baseline_trace=baseline_trace, defense=defense)
+    report = coordinator.validate_defense(
+        baseline_run_id=baseline_trace.run_id,
+        defense=defense,
+    )
     assert report.baseline_findings_count >= 2
-    assert report.defended_findings_count == 0
+    assert report.exact_replay_findings_count == 0
+    assert report.exact_replay_blocking_rate == 100.0
+    assert report.adaptive_bypass_findings_count == 0
+    assert report.adaptive_bypass_rate == 0.0
     assert report.legitimate_task_passed is True

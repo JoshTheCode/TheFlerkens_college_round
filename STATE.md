@@ -32,6 +32,7 @@
 | 2026-10-10 | AI Assistant | Target & Agents | Switched to `agentbreak-ai-agents` branch; audited `AGENT_IMPLEMENTATION_PLAN.md`. Target agent scoped as **Vulnerable Retail Banking Assistant** with simulated financial tools. Installed lightweight runtime dependencies (`fastapi`, `pydantic`, `pytest`, `httpx`). | ✅ Verified |
 | 2026-10-10 | AI Assistant | Branch Audit | Audited all tracked code at commit `741ea01`. Classified the current implementation as a deterministic simulator rather than an autonomous AI-agent system. Added `BRANCH_AUDIT.md` and an upgraded Antigravity brief in `TEAMWORK_PROJECT_PROMPT.md`. | ✅ Source audit |
 | 2026-10-10 | AI Assistant | Phase 1: Reproducibility | Added `pyproject.toml`, `pytest.ini`, `requirements.lock`, `.env.example`, `.github/workflows/ci.yml`, and exact execution commands in `README.md`. Executed clean test command: `python3 -m pytest -v tests/` (4 passed in 0.08s). | ✅ Verified empirically |
+| 2026-10-10 | AI Assistant | Phase 2: Trace Foundations | Implemented timestamps, policy rule IDs, true memory before/after diffs, fresh attempt-scoped tool interception, local trace storage (`LocalTraceStorage`), exact baseline replay by `baseline_run_id`, separate adaptive bypass reporting, API 404 validation, health reporting, and CORS restrictions. Executed `python3 -m pytest -v tests/` (9 passed in 0.31s). | ✅ Verified empirically |
 
 ---
 
@@ -43,7 +44,7 @@
 | shortcut: 02 | Attack Planner | Attack plans are static Python objects rather than target-specific model output. | Replace before claiming autonomous planning. |
 | shortcut: 03 | Payload Generator | Payloads are selected from canned arrays; failed-attempt evidence is not used. | Replace with model-generated payloads and evidence-based adaptation. |
 | shortcut: 04 | Target Agent | Target behavior is selected by keyword conditions rather than genuine model tool calling. | Replace with an LLM-backed target using typed fake tools. |
-| shortcut: 05 | Defense Validation | Validation starts a new scripted suite instead of replaying exact successful payloads by baseline run ID. | Implement immutable baseline snapshots and exact replay before adaptive bypass testing. |
+
 
 
 ---
