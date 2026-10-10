@@ -1,8 +1,24 @@
+# Environment
 .env
+.env.*
+
+# Node & Frontend
 node_modules/
 dist/
+.vite/
+
+# Python & Testing
+__pycache__/
+*.pyc
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Backend & Persistence
 *.db
 store.json*
 *.tmp
+
+# Operating System
 .DS_Store
 Thumbs.db
