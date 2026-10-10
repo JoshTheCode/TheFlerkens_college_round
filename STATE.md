@@ -32,6 +32,7 @@
 | 2026-10-10 | AI Assistant | Target & Agents | Switched to `agentbreak-ai-agents` branch; audited `AGENT_IMPLEMENTATION_PLAN.md`. Target agent scoped as **Vulnerable Retail Banking Assistant** with simulated financial tools. Installed lightweight runtime dependencies (`fastapi`, `pydantic`, `pytest`, `httpx`). | ✅ Verified |
 | 2026-10-10 | AI Assistant | Branch Audit | Audited all tracked code at commit `741ea01`. Classified the current implementation as a deterministic simulator rather than an autonomous AI-agent system. Added `BRANCH_AUDIT.md` and an upgraded Antigravity brief in `TEAMWORK_PROJECT_PROMPT.md`. | ✅ Source audit |
 | 2026-10-10 | AI Assistant | Phase 1: Reproducibility | Added `pyproject.toml`, `pytest.ini`, `requirements.lock`, `.env.example`, `.github/workflows/ci.yml`, and exact execution commands in `README.md`. Executed clean test command: `python3 -m pytest -v tests/` (4 passed in 0.08s). | ✅ Verified empirically |
+| 2026-10-10 | Codex | API Contract | Defined OpenAPI 3.1 contract v1.1 for configured attack starts, run polling, persisted traces, exact defense replay, adaptive bypass metrics, readiness, and problem-detail errors. | ✅ JSON structure and local references validated |
 | 2026-10-10 | AI Assistant | Phase 2: Trace Foundations | Implemented timestamps, policy rule IDs, true memory before/after diffs, fresh attempt-scoped tool interception, local trace storage (`LocalTraceStorage`), exact baseline replay by `baseline_run_id`, separate adaptive bypass reporting, API 404 validation, health reporting, and CORS restrictions. Executed `python3 -m pytest -v tests/` (9 passed in 0.31s). | ✅ Verified empirically |
 | 2026-10-10 | AI Assistant | Phases 3-6: Autonomous Pipeline & Bounded Verification | Implemented `AutonomousAttackPlanner` inspecting live `TargetProfile`, adaptive `AutonomousPayloadGenerator` incorporating judge evidence and adaptation notes, `ToolCallingBankAgent` with genuine tool calling and deterministic fallback double, bounded timeout/attempt budgets, provider error propagation, and expanded unit/integration/API test suites (14 tests passed in 0.32s). Schema-validated `demo/prerecorded_trace.json`. | ✅ Verified empirically (14 tests passing) |
 
@@ -72,14 +73,15 @@
 4. [x] Scope Target Agent as **Retail Banking Assistant** and document simulated tools & attack vectors.
 5. [x] Implement initial shared models, fake banking tools, interceptor, deterministic judge, API skeleton, and prerecorded trace.
 6. [x] Audit the branch and document why the present planner, generator, and target are not autonomous.
-7. [ ] Add `pyproject.toml`, lockfile, `.env.example`, CI, and verified clean-clone commands.
-8. [ ] Correct trace semantics, persistence, and exact defense replay by `baseline_run_id`.
-9. [ ] Replace the static planner with a structured model-driven planner.
-10. [ ] Replace canned payloads with an adaptive generator that consumes failed-attempt evidence.
-11. [ ] Replace keyword routing with a genuine tool-calling model target.
-12. [ ] Add attempt, time, token, and cost budgets plus explicit stopping reasons.
-13. [ ] Add regression replay, fresh adaptive bypass evaluation, and multiple legitimate-task controls.
-14. [ ] Expand unit, integration, API, persistence, provider-failure, masking, and trace-schema tests.
+7. [x] Add `pyproject.toml`, lockfile, `.env.example`, CI, and verified clean-clone commands.
+8. [x] Correct trace semantics, persistence, and exact defense replay by `baseline_run_id`.
+9. [x] Define and structurally validate the versioned OpenAPI 3.1 integration contract.
+10. [ ] Replace the static planner with a structured model-driven planner.
+11. [ ] Replace canned payloads with an adaptive generator that consumes failed-attempt evidence.
+12. [ ] Replace keyword routing with a genuine tool-calling model target.
+13. [ ] Add attempt, time, token, and cost budgets plus explicit stopping reasons.
+14. [ ] Add regression replay, fresh adaptive bypass evaluation, and multiple legitimate-task controls.
+15. [ ] Expand unit, integration, API, persistence, provider-failure, masking, and trace-schema tests.
 
 
 

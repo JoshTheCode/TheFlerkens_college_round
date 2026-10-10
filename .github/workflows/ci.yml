@@ -22,6 +22,11 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.lock
 
+      - name: Validate OpenAPI contract
+        run: |
+          python -m json.tool api/openapi.json >/dev/null
+          python scripts/validate_openapi.py
+
       - name: Run test suite
         run: |
           python -m pytest -v tests/

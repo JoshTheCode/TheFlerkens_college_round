@@ -63,6 +63,8 @@ The implementation must not access live banking systems, real credentials, the h
 - [BRANCH_AUDIT.md](BRANCH_AUDIT.md): brutally honest current-branch assessment
 - [TEAMWORK_PROJECT_PROMPT.md](TEAMWORK_PROJECT_PROMPT.md): Antigravity/teamwork-ready implementation prompt
 - [STATE.md](STATE.md): current progress, decisions, and technical debt
+- [api/API_CONTRACT.md](api/API_CONTRACT.md): API behavior, compatibility, and implementation status
+- [api/openapi.json](api/openapi.json): canonical OpenAPI 3.1 integration contract
 
 ## Quickstart & Reproducibility
 
