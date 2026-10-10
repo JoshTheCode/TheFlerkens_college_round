@@ -44,6 +44,7 @@ def main() -> None:
         "getAttackRun",
         "getAttackTrace",
         "validateDefense",
+        "getAttackLogs",
     }
     actual = {
         operation["operationId"]

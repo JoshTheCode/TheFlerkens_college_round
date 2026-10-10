@@ -83,9 +83,14 @@ class RedTeamCoordinator:
         suite_start_t = time.time()
         deadline = suite_start_t + self.run_timeout_seconds
 
-        live_log(f"Planner LLM generating attack plans (this takes ~5-15s)...")
-        plans = self.planner.plan_attacks(target, execution_mode=mode)
-        live_log(f"LLM successfully generated {len(plans)} attack plans.")
+        if mode == ExecutionMode.LIVE:
+            live_log("Planner LLM generating live attack plans via model provider...")
+            plans = self.planner.plan_attacks(target, execution_mode=mode)
+            live_log(f"Planner LLM successfully generated {len(plans)} attack plans.")
+        else:
+            live_log("Loading deterministic attack plan fixtures for offline evaluation...")
+            plans = self.planner.plan_attacks(target, execution_mode=mode)
+            live_log(f"Loaded {len(plans)} verified baseline attack plans from fixture suite.")
         if attack_families:
             plans = [p for p in plans if p.family in attack_families]
 
@@ -138,7 +143,10 @@ class RedTeamCoordinator:
                     budget_exhausted = True
                     break
 
-                live_log(f"\n[Attempt {attempt_num}/{self.max_attempts}] Generating payload for {plan.family.value}...")
+                if mode == ExecutionMode.LIVE:
+                    live_log(f"\n[Attempt {attempt_num}/{self.max_attempts}] Generating model-driven payload for {plan.family.value}...")
+                else:
+                    live_log(f"\n[Attempt {attempt_num}/{self.max_attempts}] Delivering baseline fixture payload for {plan.family.value}...")
                 payload, adaptation_notes = self.generator.generate_payload(
                     plan=plan,
                     attempt_num=attempt_num,

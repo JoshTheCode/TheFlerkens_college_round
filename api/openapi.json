@@ -152,6 +152,26 @@
         }
       }
     },
+    "/api/v1/attacks/logs": {
+      "get": {
+        "summary": "Get Attack Logs",
+        "operationId": "getAttackLogs",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Getattacklogs"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/attacks/{run_id}": {
       "get": {
         "summary": "Get Attack Status",

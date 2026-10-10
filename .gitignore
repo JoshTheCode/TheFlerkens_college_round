@@ -22,6 +22,7 @@ data/
 # Skills & Agent Tooling
 agent-skills-repo/
 .skills/
+.agents/
 
 # Operating System & IDE
 .DS_Store
