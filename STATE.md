@@ -82,12 +82,19 @@
 7. [x] Add `pyproject.toml`, lockfile, `.env.example`, CI, and verified clean-clone commands.
 8. [x] Correct trace semantics, persistence, and exact defense replay by `baseline_run_id`.
 9. [x] Define and structurally validate the versioned OpenAPI 3.1 integration contract.
-10. [ ] Replace the static planner with a structured model-driven planner.
-11. [ ] Replace canned payloads with an adaptive generator that consumes failed-attempt evidence.
-12. [ ] Replace keyword routing with a genuine tool-calling model target.
-13. [ ] Add attempt, time, token, and cost budgets plus explicit stopping reasons.
-14. [ ] Add regression replay, fresh adaptive bypass evaluation, and multiple legitimate-task controls.
-15. [ ] Expand unit, integration, API, persistence, provider-failure, masking, and trace-schema tests.
+10. [x] Replace the static planner with a structured model-driven planner inspecting live `TargetProfile`.
+11. [x] Replace canned payloads with an adaptive generator that consumes failed-attempt evidence and generates attempt 1 dynamically in live mode.
+12. [x] Replace keyword routing with a genuine tool-calling model target and multi-round tool loop.
+13. [x] Add attempt, time, token delta, and cost budgets plus typed `StoppingReason` enums.
+14. [x] Add regression replay, fresh adaptive bypass evaluation, and multiple legitimate-task controls.
+15. [x] Expand unit, integration, API, persistence, provider-failure, and budget test suites (21 passing tests).
+16. [ ] **Custom Target Agent Provision (UI & API Task)**:
+    - **Frontend (Member 1)**: Add "Register Custom Agent" form modal in the dashboard UI allowing users to input:
+      - Agent Name & System Prompt
+      - Tool Definitions (Name, Description, JSON Parameters)
+      - Allowed vs. Forbidden Resources
+    - **API (Member 3)**: Add `POST /api/v1/targets` endpoint accepting `TargetProfile` and persisting it in `data/targets/` (or in-memory registry).
+    - **Red Team Engine (Member 4)**: The engine (`AutonomousAttackPlanner` and `AutonomousPayloadGenerator`) is already target-agnostic and ready to accept any custom registered `TargetProfile`.
 
 
 
