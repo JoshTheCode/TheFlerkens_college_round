@@ -13,7 +13,7 @@ The branch contains a fully working, self-contained AI red-teaming engine and sa
 - **Strict Guardrails**: Hard attempt limits, timeout limits, token budgets, and local JSON trace persistence with before/after memory diffs.
 - **Automated Verification**: 20/20 unit, integration, and API tests passing in `<0.3s`.
 
-See [BRANCH_AUDIT.md](BRANCH_AUDIT.md) for the original defect audit and the resolution addendum.
+See [BRANCH_AUDIT.md](docs/BRANCH_AUDIT.md) for the original defect audit and the resolution addendum.
 
 ## Target Architecture
 
@@ -55,11 +55,13 @@ The implementation must not access live banking systems, real credentials, the h
 
 ## Documents
 
-- [PROBLEM_STATEMENT.md](PROBLEM_STATEMENT.md): product problem and success definition
-- [ARCHITECTURE_AND_PLAN.md](ARCHITECTURE_AND_PLAN.md): system architecture and phased delivery
-- [AGENT_IMPLEMENTATION_PLAN.md](AGENT_IMPLEMENTATION_PLAN.md): detailed agent implementation design
-- [BRANCH_AUDIT.md](BRANCH_AUDIT.md): brutally honest current-branch assessment
-- [TEAMWORK_PROJECT_PROMPT.md](TEAMWORK_PROJECT_PROMPT.md): Antigravity/teamwork-ready implementation prompt
+- [docs/PROBLEM_STATEMENT.md](docs/PROBLEM_STATEMENT.md): product problem and success definition
+- [docs/ARCHITECTURE_AND_PLAN.md](docs/ARCHITECTURE_AND_PLAN.md): system architecture and phased delivery
+- [docs/AGENT_IMPLEMENTATION_PLAN.md](docs/AGENT_IMPLEMENTATION_PLAN.md): detailed agent implementation design
+- [docs/BRANCH_AUDIT.md](docs/BRANCH_AUDIT.md): brutally honest current-branch assessment
+- [docs/TEAMWORK_PROJECT_PROMPT.md](docs/TEAMWORK_PROJECT_PROMPT.md): Antigravity/teamwork-ready implementation prompt
+- [docs/AGENTS.md](docs/AGENTS.md): agent roles and lightweight prompt guide
+- [docs/SKILLS_GUIDE.md](docs/SKILLS_GUIDE.md): skills and tools cheat sheet
 - [STATE.md](STATE.md): current progress, decisions, and technical debt
 - [api/API_CONTRACT.md](api/API_CONTRACT.md): API behavior, compatibility, and implementation status
 - [api/openapi.json](api/openapi.json): canonical OpenAPI 3.1 integration contract
