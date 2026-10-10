@@ -78,3 +78,9 @@ This document tracks all changes made starting from the code review and branch f
 ### 8. ⚡ Asynchronous Atomic Persistence (`backend/src/db/store.ts`)
 - *Problem*: Synchronous `fs.writeFileSync` in `store.ts` could cause race conditions or block the Node event loop under rapid concurrent writes.
 - *Fix*: Replaced synchronous writes with asynchronous `fs.promises.writeFile` to a temporary buffer (`store.json.tmp`) followed by atomic rename, backed by a non-blocking queue/debounce. All tests pass in 488ms.
+
+---
+
+### 9. 🚀 O(1) In-Memory Attack Indexing (`backend/src/db/store.ts` & `backend/src/routes/api.ts`)
+- *Problem*: Defense validation scanned and filtered the entire attacks collection via `Array.from(db.attacks.values()).filter(...)`.
+- *Fix*: Added a secondary index `attacksByTarget: Map<targetId, attackId[]>` with `saveAttack()` and `getAttacksForTarget()`. Lookups by target are now $O(1)$ instead of an unbounded linear array scan. All tests pass in 548ms.

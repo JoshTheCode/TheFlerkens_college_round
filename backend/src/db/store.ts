@@ -13,6 +13,9 @@ class DataStore {
   public agents = new Map<string, TargetAgent>();
   public attacks = new Map<string, AttackRun>();
   public defenses = new Map<string, DefenseProfile>();
+  // Secondary index for O(1) target -> attacks lookups without full array scans
+  public attacksByTarget = new Map<string, string[]>();
+
   private filePath: string;
   private tempPath: string;
   private isWriting = false;
@@ -32,10 +35,35 @@ class DataStore {
         this.agents = new Map(data.agents || []);
         this.attacks = new Map(data.attacks || []);
         this.defenses = new Map(data.defenses || []);
+        this.rebuildIndexes();
       }
     } catch {
       // In case of read/parse error, fallback gracefully to in-memory
     }
+  }
+
+  private rebuildIndexes() {
+    this.attacksByTarget.clear();
+    for (const [id, attack] of this.attacks) {
+      const list = this.attacksByTarget.get(attack.targetId) || [];
+      list.push(id);
+      this.attacksByTarget.set(attack.targetId, list);
+    }
+  }
+
+  public saveAttack(attack: AttackRun) {
+    this.attacks.set(attack.id, attack);
+    const list = this.attacksByTarget.get(attack.targetId) || [];
+    list.push(attack.id);
+    this.attacksByTarget.set(attack.targetId, list);
+  }
+
+  public getAttacksForTarget(targetId: string): AttackRun[] {
+    const ids = this.attacksByTarget.get(targetId);
+    if (!ids) return [];
+    return ids
+      .map((id) => this.attacks.get(id))
+      .filter((a): a is AttackRun => a !== undefined);
   }
 
   public async save(): Promise<void> {
@@ -61,7 +89,6 @@ class DataStore {
       this.isWriting = false;
       if (this.pendingWrite) {
         this.pendingWrite = false;
-        // Schedule pending write run
         void this.save();
       }
     }
@@ -71,6 +98,7 @@ class DataStore {
     this.agents.clear();
     this.attacks.clear();
     this.defenses.clear();
+    this.attacksByTarget.clear();
     try {
       if (fs.existsSync(this.filePath)) {
         fs.unlinkSync(this.filePath);

@@ -139,8 +139,8 @@ apiRouter.post(
       completedAt: new Date().toISOString(),
     };
 
-    db.attacks.set(attackRun.id, attackRun);
-    db.save();
+    db.saveAttack(attackRun);
+    void db.save();
 
     return res.status(201).json(attackRun);
   })
@@ -175,7 +175,7 @@ apiRouter.post(
       return res.status(400).json({ error: "Invalid payload: targetId and defenseName are required" });
     }
 
-    let relevantAttacks = Array.from(db.attacks.values()).filter((a) => a.targetId === targetId);
+    let relevantAttacks = db.getAttacksForTarget(targetId);
     if (attackId) {
       relevantAttacks = relevantAttacks.filter((a) => a.id === attackId);
     }
