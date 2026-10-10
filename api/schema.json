@@ -1,0 +1,264 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "AgentBreak Core API Contract",
+    "version": "1.0.0",
+    "description": "Standardized OpenAPI payload contract for AgentBreak: Autonomous AI Red Team platform."
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8000/api/v1",
+      "description": "Local development server"
+    }
+  ],
+  "paths": {
+    "/targets/register": {
+      "post": {
+        "summary": "Register a target AI agent",
+        "description": "Registers system prompts, models, and tool capability permissions for red teaming.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TargetAgentCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Agent successfully registered",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TargetAgent"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid payload"
+          }
+        }
+      }
+    },
+    "/targets": {
+      "get": {
+        "summary": "List registered target AI agents",
+        "responses": {
+          "200": {
+            "description": "List of agents",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TargetAgent"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/attacks/start": {
+      "post": {
+        "summary": "Trigger autonomous red team probe suite against a target",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AttackStartRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Attack execution record with deterministic trace",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AttackRun"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Target agent not found"
+          }
+        }
+      }
+    },
+    "/attacks/{id}/trace": {
+      "get": {
+        "summary": "Retrieve structured deterministic attack execution trace",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Detailed trace with step-by-step decisions and tool calls",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AttackRun"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Attack run not found"
+          }
+        }
+      }
+    },
+    "/defenses/validate": {
+      "post": {
+        "summary": "Validate proposed defense profile against past exploits",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DefenseValidateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Validation results with prevention rate",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DefenseValidateResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ToolDefinition": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" },
+          "description": { "type": "string" },
+          "blocked": { "type": "boolean" }
+        },
+        "required": ["name"]
+      },
+      "TargetAgentCreate": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" },
+          "systemPrompt": { "type": "string" },
+          "modelName": { "type": "string", "default": "gpt-4o-mini" },
+          "toolDefinitions": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/ToolDefinition" }
+          }
+        },
+        "required": ["name", "systemPrompt"]
+      },
+      "TargetAgent": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "systemPrompt": { "type": "string" },
+          "modelName": { "type": "string" },
+          "toolDefinitions": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/ToolDefinition" }
+          },
+          "createdAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "TraceStep": {
+        "type": "object",
+        "properties": {
+          "stepNumber": { "type": "integer" },
+          "actionType": {
+            "type": "string",
+            "enum": ["ADVERSARIAL_PROMPT", "MEMORY_AUDIT", "TOOL_INTERCEPTION", "RESULT"]
+          },
+          "payload": { "type": "object" },
+          "violationDetected": { "type": "boolean" },
+          "details": { "type": "string" },
+          "timestamp": { "type": "string", "format": "date-time" }
+        }
+      },
+      "AttackStartRequest": {
+        "type": "object",
+        "properties": {
+          "targetId": { "type": "string" },
+          "attackType": {
+            "type": "string",
+            "enum": ["prompt_injection", "tool_escalation", "memory_poison"]
+          },
+          "payload": { "type": "string" },
+          "simulatedToolCall": { "type": "string" },
+          "simulatedToolArgs": { "type": "object" }
+        },
+        "required": ["targetId", "payload"]
+      },
+      "AttackRun": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "targetId": { "type": "string" },
+          "attackType": { "type": "string" },
+          "status": { "type": "string" },
+          "success": { "type": "boolean" },
+          "severity": { "type": "string", "enum": ["LOW", "MEDIUM", "HIGH", "CRITICAL"] },
+          "traces": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/TraceStep" }
+          },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "completedAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "DefenseValidateRequest": {
+        "type": "object",
+        "properties": {
+          "targetId": { "type": "string" },
+          "defenseName": { "type": "string" },
+          "blockedKeywords": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "attackId": { "type": "string" }
+        },
+        "required": ["targetId", "defenseName"]
+      },
+      "DefenseValidateResponse": {
+        "type": "object",
+        "properties": {
+          "defenseId": { "type": "string" },
+          "targetId": { "type": "string" },
+          "defenseName": { "type": "string" },
+          "exploitPreventedRate": { "type": "integer" },
+          "attacksTested": { "type": "integer" },
+          "attacksBlocked": { "type": "integer" },
+          "status": { "type": "string" }
+        }
+      }
+    }
+  }
+}
