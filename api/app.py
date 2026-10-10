@@ -1,6 +1,6 @@
 import os
 from typing import Any, Dict, List, Optional
-from fastapi import FastAPI, HTTPException, status
+from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from agents.coordinator import RedTeamCoordinator
@@ -46,10 +46,17 @@ coordinator = RedTeamCoordinator()
 
 
 @app.get("/api/v1/health", operation_id="getHealth")
-def health_check() -> Dict[str, Any]:
-    api_key_configured = bool(os.getenv("OPENAI_API_KEY"))
+def health_check(request: Request) -> Dict[str, Any]:
+    api_key_header = None
+    model_header = None
+    if request:
+        api_key_header = request.headers.get("x-api-key") or (
+            request.headers.get("authorization", "").replace("Bearer ", "").strip()
+        )
+        model_header = request.headers.get("x-red-team-model")
+    api_key_configured = bool(api_key_header or coordinator.client.is_configured or os.getenv("OPENAI_API_KEY"))
     provider_url = os.getenv("OPENAI_BASE_URL", "https://openrouter.ai/api/v1")
-    model_name = os.getenv("AGENTBREAK_MODEL", "openai/gpt-4o-mini")
+    model_name = model_header or coordinator.client.model or os.getenv("AGENTBREAK_MODEL", "openai/gpt-4o-mini")
 
     return {
         "status": "healthy",
@@ -77,7 +84,24 @@ def get_target(target_id: str) -> TargetProfile:
 
 
 @app.post("/api/v1/attacks/start", response_model=ExecutionTrace, operation_id="startAttackRun")
-def start_attack_run(req: Optional[AttackRunRequest] = None) -> ExecutionTrace:
+def start_attack_run(
+    req: Optional[AttackRunRequest] = None,
+    request: Request = None,
+) -> ExecutionTrace:
+    if request:
+        api_key = request.headers.get("x-api-key") or (
+            request.headers.get("authorization", "").replace("Bearer ", "").strip()
+        )
+        model = request.headers.get("x-red-team-model")
+        if api_key:
+            coordinator.client.api_key = api_key
+            coordinator.planner.client.api_key = api_key
+            coordinator.generator.client.api_key = api_key
+        if model:
+            coordinator.client.model = model
+            coordinator.planner.client.model = model
+            coordinator.generator.client.model = model
+
     mode = req.execution_mode if req else None
     families = req.attack_families if req else None
     target_id = req.target_id if req else None

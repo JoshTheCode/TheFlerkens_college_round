@@ -16,6 +16,16 @@ def test_health_endpoint(client):
     assert "api_ready" in data
     assert "provider_ready" in data
 
+    # Header-based provider configuration check
+    res_hdr = client.get(
+        "/api/v1/health",
+        headers={"X-API-Key": "sk-test-live-key", "X-Red-Team-Model": "anthropic/claude-3.5-sonnet"},
+    )
+    assert res_hdr.status_code == 200
+    data_hdr = res_hdr.json()
+    assert data_hdr["provider_ready"] is True
+    assert data_hdr["model"] == "anthropic/claude-3.5-sonnet"
+
 
 def test_get_default_target(client):
     res = client.get("/api/v1/targets/default")
