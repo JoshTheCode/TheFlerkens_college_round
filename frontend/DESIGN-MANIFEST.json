@@ -1,0 +1,35 @@
+{
+  "schema": "open-design.design-manifest.v1",
+  "title": "c90283c6-d4bf-4573-8fe2-50258a855ac1",
+  "entryFile": "index.html",
+  "sourceFiles": {
+    "all": [
+      "frontend/src/mocks/demo-data.js",
+      "image.png",
+      "index.html",
+      "Screenshot-_1564_.png",
+      "screenshot-2026-10-10T10-07-57-543Z.png",
+      "screenshot-2026-10-10T10-08-04-555Z.png"
+    ],
+    "html": [
+      "index.html"
+    ],
+    "css": [],
+    "scriptsAndComponents": [
+      "frontend/src/mocks/demo-data.js"
+    ],
+    "assets": [
+      "image.png",
+      "Screenshot-_1564_.png",
+      "screenshot-2026-10-10T10-07-57-543Z.png",
+      "screenshot-2026-10-10T10-08-04-555Z.png"
+    ]
+  },
+  "screens": [
+    {
+      "file": "index.html",
+      "role": "screen",
+      "implementationNote": "Preserve visual hierarchy, responsive behavior, and interactive states from this screen."
+    }
+  ]
+}
