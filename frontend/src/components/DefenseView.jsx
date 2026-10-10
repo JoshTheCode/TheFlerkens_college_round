@@ -8,17 +8,17 @@ export function DefenseView({ defense, onValidateDefense }) {
   const pct = (v) => `${Math.round(v * 100)}%`;
 
   const owaspCategories = [
-    { code: 'LLM01', name: 'Prompt Injection', severity: 'Critical', color: '#F5580A', count: 8, mitigated: '8/8' },
-    { code: 'LLM02', name: 'Insecure Output Handling', severity: 'High', color: '#F99D45', count: 5, mitigated: '5/5' },
-    { code: 'LLM06', name: 'Sensitive Info Disclosure', severity: 'High', color: '#F99D45', count: 4, mitigated: '3/4' },
-    { code: 'LLM08', name: 'Excessive Agency / Tool Escalation', severity: 'Critical', color: '#F5580A', count: 6, mitigated: '6/6' }
+    { code: 'LLM01', name: 'Prompt Injection', severity: 'Critical', color: '#2B5B6C', count: 8, mitigated: '8/8' },
+    { code: 'LLM02', name: 'Insecure Output Handling', severity: 'High', color: '#4E90A8', count: 5, mitigated: '5/5' },
+    { code: 'LLM06', name: 'Sensitive Info Disclosure', severity: 'High', color: '#4E90A8', count: 4, mitigated: '3/4' },
+    { code: 'LLM08', name: 'Excessive Agency / Tool Escalation', severity: 'Critical', color: '#2B5B6C', count: 6, mitigated: '6/6' }
   ];
 
   return (
     <div>
       <div className="page-head">
         <div>
-          <h1 className="page-title">Defense validation & Regression benchmark</h1>
+          <h1 className="page-title">Defense Validation & Regression Benchmark</h1>
           <p className="page-sub">
             Validate candidate defenses against reproducible adversarial attacks and monitor utility preservation on benign prompts.
           </p>
@@ -31,14 +31,14 @@ export function DefenseView({ defense, onValidateDefense }) {
         </div>
       </div>
 
-      {/* Requirement 6: Utility & Regression Testing Scorecards */}
+      {/* Utility & Regression Testing Scorecards */}
       <div className="metrics" style={{ marginBottom: 'var(--gap)' }}>
         <article className="card metric">
           <div className="metric__top">
             <span className="metric__ic ok"><Icon name="shield" /></span>
             <span className="badge badge--ok">+78 pts</span>
           </div>
-          <div className="metric__value">89%</div>
+          <div className="metric__value" style={{ color: 'var(--ok)' }}>89%</div>
           <div className="metric__label">Defense Efficacy (Attacks Blocked)</div>
         </article>
 
@@ -47,16 +47,16 @@ export function DefenseView({ defense, onValidateDefense }) {
             <span className="metric__ic ok"><Icon name="check" /></span>
             <span className="badge badge--ok">Healthy</span>
           </div>
-          <div className="metric__value">97%</div>
+          <div className="metric__value" style={{ color: 'var(--ok)' }}>97%</div>
           <div className="metric__label">Normal Agent Utility Retention</div>
         </article>
 
         <article className="card metric">
           <div className="metric__top">
-            <span className="metric__ic warn"><Icon name="alert" /></span>
+            <span className="metric__ic high"><Icon name="alert" /></span>
             <span className="badge badge--neutral">Low</span>
           </div>
-          <div className="metric__value">3.5%</div>
+          <div className="metric__value" style={{ color: 'var(--ink)' }}>3.5%</div>
           <div className="metric__label">False Positive Rate (Benign blocked)</div>
         </article>
 
@@ -65,12 +65,12 @@ export function DefenseView({ defense, onValidateDefense }) {
             <span className="metric__ic primary"><Icon name="database" /></span>
             <span className="badge badge--info">Verified</span>
           </div>
-          <div className="metric__value">16 / 18</div>
+          <div className="metric__value" style={{ color: 'var(--active)' }}>16 / 18</div>
           <div className="metric__label">Regression Tests Passing</div>
         </article>
       </div>
 
-      {/* Requirement 5: Pre vs. Post Mitigation Comparison */}
+      {/* Pre vs. Post Mitigation Comparison (Clean Typography & Spacing) */}
       <section className="card" style={{ marginBottom: 'var(--gap)' }}>
         <div className="card__head">
           <div>
@@ -82,44 +82,44 @@ export function DefenseView({ defense, onValidateDefense }) {
           <div className="compare">
             <div className="cmp is-before">
               <div className="cmp__label">UNMITIGATED RUN (PRE-DEFENSE)</div>
-              <div className="cmp__big" style={{ color: '#F5580A' }}>
+              <div className="cmp__big" style={{ color: 'var(--sev-crit)' }}>
                 {pct(b.exploit_success_rate)}
               </div>
-              <div className="small muted">exploited across {b.attacks} attacks</div>
+              <div className="small muted">Exploited across {b.attacks} simulated attack runs</div>
               <div className="cmp__bars">
                 <div className="barcmp">
                   <div className="barcmp__top"><span>Exploit Success Rate (ESR)</span><span>72%</span></div>
-                  <div className="barcmp__track"><div className="barcmp__fill" style={{ width: '72%', background: '#F5580A' }}></div></div>
+                  <div className="barcmp__track"><div className="barcmp__fill" style={{ width: '72%', background: 'var(--sev-crit)' }}></div></div>
                 </div>
                 <div className="barcmp">
                   <div className="barcmp__top"><span>Blocked Rate</span><span>12%</span></div>
-                  <div className="barcmp__track"><div className="barcmp__fill" style={{ width: '12%', background: '#8B8478' }}></div></div>
+                  <div className="barcmp__track"><div className="barcmp__fill" style={{ width: '12%', background: 'var(--muted)' }}></div></div>
                 </div>
                 <div className="barcmp">
                   <div className="barcmp__top"><span>Utility Preserved</span><span>98%</span></div>
-                  <div className="barcmp__track"><div className="barcmp__fill" style={{ width: '98%', background: '#2F7D4F' }}></div></div>
+                  <div className="barcmp__track"><div className="barcmp__fill" style={{ width: '98%', background: 'var(--ok)' }}></div></div>
                 </div>
               </div>
             </div>
 
             <div className="cmp is-after">
               <div className="cmp__label">PATCHED DEFENSE PROFILE (POST-DEFENSE)</div>
-              <div className="cmp__big" style={{ color: '#2F7D4F' }}>
+              <div className="cmp__big" style={{ color: 'var(--ok)' }}>
                 {pct(a.exploit_success_rate)}
               </div>
-              <div className="small muted">only 2 exploits succeeded (89% prevented)</div>
+              <div className="small muted">Only 2 exploits succeeded (89% prevented)</div>
               <div className="cmp__bars">
                 <div className="barcmp">
                   <div className="barcmp__top"><span>Exploit Success Rate (ESR)</span><span>11%</span></div>
-                  <div className="barcmp__track"><div className="barcmp__fill" style={{ width: '11%', background: '#F5580A' }}></div></div>
+                  <div className="barcmp__track"><div className="barcmp__fill" style={{ width: '11%', background: 'var(--sev-crit)' }}></div></div>
                 </div>
                 <div className="barcmp">
                   <div className="barcmp__top"><span>Blocked Rate</span><span>89%</span></div>
-                  <div className="barcmp__track"><div className="barcmp__fill" style={{ width: '89%', background: '#2F7D4F' }}></div></div>
+                  <div className="barcmp__track"><div className="barcmp__fill" style={{ width: '89%', background: 'var(--ok)' }}></div></div>
                 </div>
                 <div className="barcmp">
                   <div className="barcmp__top"><span>Utility Preserved</span><span>97%</span></div>
-                  <div className="barcmp__track"><div className="barcmp__fill" style={{ width: '97%', background: '#2F7D4F' }}></div></div>
+                  <div className="barcmp__track"><div className="barcmp__fill" style={{ width: '97%', background: 'var(--ok)' }}></div></div>
                 </div>
               </div>
             </div>

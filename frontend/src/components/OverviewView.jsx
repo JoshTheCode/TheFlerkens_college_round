@@ -4,16 +4,16 @@ import { Icon } from './Icons';
 export function OverviewView({ overview, activity, targetAgents, onNavigate, onSync, onToast }) {
   const sb = overview.severity_breakdown;
 
-  // Enforced Donut Palette:
-  // Segment 1 (Critical): #F5580A
-  // Segment 2 (High): #F99D45
-  // Segment 3 (Medium): #B4D5E0
-  // Segment 4 (Low / Baseline): #4E90A8
+  // Enforced Donut Palette (Shades of #B4D5E0):
+  // Critical: #2B5B6C
+  // High: #4E90A8
+  // Medium: #8BBCCB
+  // Low / Passed: #B4D5E0
   const segs = [
-    { label: 'Critical', value: sb.critical, color: '#F5580A' },
-    { label: 'High', value: sb.high, color: '#F99D45' },
-    { label: 'Medium', value: sb.medium, color: '#B4D5E0' },
-    { label: 'Low', value: sb.low, color: '#4E90A8' }
+    { label: 'Critical', value: sb.critical, color: '#2B5B6C' },
+    { label: 'High', value: sb.high, color: '#4E90A8' },
+    { label: 'Medium', value: sb.medium, color: '#8BBCCB' },
+    { label: 'Low', value: sb.low, color: '#B4D5E0' }
   ];
 
   const getAgentName = (id) => {
@@ -21,7 +21,7 @@ export function OverviewView({ overview, activity, targetAgents, onNavigate, onS
     return agt ? agt.name : id;
   };
 
-  const renderSparkline = (vals, color = '#F5580A') => {
+  const renderSparkline = (vals, color = '#4E90A8') => {
     const w = 128, h = 30;
     const max = Math.max(...vals), min = Math.min(...vals), range = (max - min) || 1;
     const pts = vals
@@ -81,12 +81,12 @@ export function OverviewView({ overview, activity, targetAgents, onNavigate, onS
       <svg className="chart" viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" role="img" aria-label="Simulated attacks started per day">
         <defs>
           <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stopColor="#F5580A" stopOpacity=".2" />
-            <stop offset="1" stopColor="#F5580A" stopOpacity="0" />
+            <stop offset="0" stopColor="#4E90A8" stopOpacity=".25" />
+            <stop offset="1" stopColor="#4E90A8" stopOpacity="0" />
           </linearGradient>
         </defs>
         <path d={area} fill="url(#areaGrad)" />
-        <polyline points={line} fill="none" stroke="#F5580A" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+        <polyline points={line} fill="none" stroke="#4E90A8" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
     );
   };
@@ -101,11 +101,7 @@ export function OverviewView({ overview, activity, targetAgents, onNavigate, onS
           </p>
         </div>
         <div className="page-head__actions">
-          <span className="illus" title="All findings, scores and runs on this page are illustrative demo data.">
-            <Icon name="eye" size="sm" />
-            Illustrative demo data
-          </span>
-          <button className="btn btn--secondary" onClick={onSync}>
+          <button className="btn btn--primary" onClick={onSync}>
             <Icon name="refresh" size="sm" />
             Sync sandbox
           </button>
@@ -121,17 +117,17 @@ export function OverviewView({ overview, activity, targetAgents, onNavigate, onS
           </div>
           <div className="metric__value">{overview.discovered_exploits}</div>
           <div className="metric__label">Discovered exploits</div>
-          <div className="metric__foot">{renderSparkline(overview.exploits_spark, '#F5580A')}</div>
+          <div className="metric__foot">{renderSparkline(overview.exploits_spark, '#2B5B6C')}</div>
         </article>
 
         <article className="card metric">
           <div className="metric__top">
-            <span className="metric__ic warn"><Icon name="key" /></span>
+            <span className="metric__ic high"><Icon name="key" /></span>
             <span className="metric__delta up"><Icon name="up" size="sm" />+{overview.deltas.escalations} vs last run</span>
           </div>
           <div className="metric__value">{overview.tool_escalation_alerts}</div>
           <div className="metric__label">Tool escalation alerts</div>
-          <div className="metric__foot">{renderSparkline(overview.escalations_spark, '#F99D45')}</div>
+          <div className="metric__foot">{renderSparkline(overview.escalations_spark, '#4E90A8')}</div>
         </article>
 
         <article className="card metric">
@@ -141,7 +137,7 @@ export function OverviewView({ overview, activity, targetAgents, onNavigate, onS
           </div>
           <div className="metric__value">{Math.round(overview.defense_mitigation_rate * 100)}%</div>
           <div className="metric__label">Defense mitigation rate</div>
-          <div className="metric__foot">{renderSparkline(overview.mitigation_spark, '#2F7D4F')}</div>
+          <div className="metric__foot">{renderSparkline(overview.mitigation_spark, '#2A6A56')}</div>
         </article>
 
         <article className="card metric">
@@ -168,10 +164,10 @@ export function OverviewView({ overview, activity, targetAgents, onNavigate, onS
             <div className="donut-wrap">
               <svg width="150" height="150" viewBox="0 0 150 150" role="img">
                 {renderDonut(segs, 150, 22)}
-                <text x="75" y="71" textAnchor="middle" fontSize="26" fontWeight="800" fill="#1C1B18">
+                <text x="75" y="71" textAnchor="middle" fontSize="26" fontWeight="800" fill="#1E3842">
                   {sb.critical + sb.high + sb.medium + sb.low}
                 </text>
-                <text x="75" y="90" textAnchor="middle" fontSize="11" fontWeight="600" fill="#8B857A">
+                <text x="75" y="90" textAnchor="middle" fontSize="11" fontWeight="600" fill="#5B7B88">
                   exploits
                 </text>
               </svg>
@@ -198,8 +194,8 @@ export function OverviewView({ overview, activity, targetAgents, onNavigate, onS
           <div className="card__body">
             <div className="chart__cap">
               <span className="small muted">Peak {Math.max(...overview.attack_volume)} / day</span>
-              <div className="chart__legend">
-                <span><Icon name="activity" size="sm" /> campaigns</span>
+              <div style={{ fontSize: '12px', color: 'var(--muted)', fontWeight: 600 }}>
+                <Icon name="activity" size="sm" /> campaigns
               </div>
             </div>
             {renderAreaChart(overview.attack_volume)}

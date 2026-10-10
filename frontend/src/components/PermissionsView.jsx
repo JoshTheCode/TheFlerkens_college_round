@@ -17,17 +17,23 @@ export function PermissionsView({ tools, onToast }) {
     return scopes.some((s) => t.scopes[s] === 'escalation');
   });
 
-  const getRiskClass = (r) => {
-    return r === 'critical' ? 'crit' : r === 'high' ? 'high' : r === 'medium' ? 'warn' : 'ok';
+  const getRiskBadge = (r) => {
+    return r === 'critical' ? (
+      <span className="badge badge--crit">Critical</span>
+    ) : r === 'high' ? (
+      <span className="badge badge--high">High</span>
+    ) : (
+      <span className="badge badge--med">Medium</span>
+    );
   };
 
   return (
     <div>
       <div className="page-head">
         <div>
-          <h1 className="page-title">Tool & permission audit</h1>
+          <h1 className="page-title">Tool & Permission Audit Matrix</h1>
           <p className="page-sub">
-            Every tool the target can reach, mapped against its declared scope. Cells flagged Escalation exceed the agent’s intended permissions.
+            Every tool available to the target agent, evaluated against declared scope boundaries. Cells flagged Escalation exceed intended permissions.
           </p>
         </div>
       </div>
@@ -62,7 +68,7 @@ export function PermissionsView({ tools, onToast }) {
         <section className="card">
           <div className="card__head">
             <div>
-              <div className="card__title">Permission matrix</div>
+              <div className="card__title">Permission Scope Matrix</div>
               <div className="card__sub">Grid of connected tools by scope — escalations highlighted</div>
             </div>
             <div className="card__actions">
@@ -78,21 +84,22 @@ export function PermissionsView({ tools, onToast }) {
           </div>
 
           <div className="card__body card__body--flush">
-            <div className="od-cluster" style={{ gap: '16px', padding: '14px 16px 4px' }}>
+            <div className="od-cluster" style={{ gap: '16px', padding: '14px 16px', background: 'var(--surface-2)', borderBottom: '1px solid var(--line)' }}>
               <span className="cell-state allowed"><Icon name="check" size="sm" />Allowed</span>
               <span className="cell-state denied"><Icon name="x" size="sm" />Denied</span>
               <span className="cell-state escalation"><Icon name="alert" size="sm" />Escalation</span>
             </div>
 
+            {/* Grid-bordered matrix table */}
             <div className="table-wrap">
               <table className="matrix">
                 <thead>
                   <tr>
-                    <th>Tool</th>
+                    <th>Connected Tool</th>
                     {scopes.map((s) => (
-                      <th key={s} scope="col">{s.charAt(0).toUpperCase() + s.slice(1)}</th>
+                      <th key={s} scope="col">{s.charAt(0).toUpperCase() + s.slice(1)} Scope</th>
                     ))}
-                    <th scope="col">Risk</th>
+                    <th scope="col">Declared Risk</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -100,7 +107,7 @@ export function PermissionsView({ tools, onToast }) {
                     <tr key={t.tool_id}>
                       <td>
                         <div className="tool-name">
-                          <Icon name={getRiskClass(t.risk) === 'crit' ? 'database' : 'file'} />
+                          <Icon name="database" />
                           <div>
                             <div>{t.tool_name}</div>
                             <div className="cell-sub mono">{t.tool_id}</div>
@@ -121,9 +128,7 @@ export function PermissionsView({ tools, onToast }) {
                         );
                       })}
                       <td data-label="Risk">
-                        <span className={`badge badge--${getRiskClass(t.risk)}`}>
-                          {t.risk.charAt(0).toUpperCase() + t.risk.slice(1)}
-                        </span>
+                        {getRiskBadge(t.risk)}
                       </td>
                     </tr>
                   ))}

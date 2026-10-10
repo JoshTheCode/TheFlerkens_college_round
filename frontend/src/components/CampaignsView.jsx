@@ -59,7 +59,7 @@ export function CampaignsView({ campaigns, targetAgents, onLaunchCampaign, onToa
         </div>
       </div>
 
-      {/* Real-Time Probing Console & Live Interception Feed (Requirement 4) */}
+      {/* Real-Time Probing Console & Live Interception Feed (Lighter Color Surface) */}
       <section className="card" style={{ marginBottom: 'var(--gap)' }}>
         <div className="card__head">
           <div>
@@ -94,17 +94,12 @@ export function CampaignsView({ campaigns, targetAgents, onLaunchCampaign, onToa
         </div>
       </section>
 
-      {/* Campaigns Table & Filter */}
+      {/* Campaigns Table & Filter (No duplicate button) */}
       <section className="card">
         <div className="card__head">
-          <div className="card__title">Campaign Directory</div>
-          <div className="card__actions">
-            <button
-              className="btn btn--primary btn--sm"
-              onClick={onLaunchCampaign}
-            >
-              <Icon name="plus" size="sm" /> New Campaign
-            </button>
+          <div>
+            <div className="card__title">Campaign Directory</div>
+            <div className="card__sub">All active and historic red-team campaigns</div>
           </div>
         </div>
         <div className="card__body card__body--flush">
@@ -154,15 +149,18 @@ export function CampaignsView({ campaigns, targetAgents, onLaunchCampaign, onToa
                       </td>
                       <td data-label="Status">
                         <span className={`badge badge--${c.status === 'running' ? 'info' : c.status === 'completed' ? 'ok' : c.status === 'failed' ? 'crit' : 'neutral'}`}>
-                          {c.status.charAt(0).toUpperCase() + c.slice(1)}
+                          {c.status ? c.status.charAt(0).toUpperCase() + c.status.slice(1) : 'Unknown'}
                         </span>
                       </td>
                       <td data-label="Progress">
                         <div className="prog">
                           <div className="prog__track">
                             <div
-                              className={`prog__fill ${c.status === 'failed' ? 'crit' : c.status === 'completed' ? 'ok' : ''}`}
-                              style={{ width: `${c.progress}%` }}
+                              className="prog__fill"
+                              style={{
+                                width: `${c.progress}%`,
+                                background: c.status === 'completed' ? 'var(--ok)' : 'var(--primary)'
+                              }}
                             ></div>
                           </div>
                           <span className="prog__val">{c.progress}%</span>

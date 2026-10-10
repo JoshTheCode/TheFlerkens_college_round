@@ -37,9 +37,9 @@ export function SettingsView({
     <div>
       <div className="page-head">
         <div>
-          <h1 className="page-title">Settings & documentation</h1>
+          <h1 className="page-title">Settings & Documentation</h1>
           <p className="page-sub">
-            Workspace configuration, sandbox connectivity and the API surface the console targets.
+            Workspace configuration, sandbox connectivity status and API contract specs.
           </p>
         </div>
       </div>
@@ -69,7 +69,7 @@ export function SettingsView({
         {activeTab === 'general' && (
           <section className="card">
             <div className="card__head">
-              <div className="card__title">Workspace settings</div>
+              <div className="card__title">Workspace Settings</div>
             </div>
             <div className="card__body">
               <form
@@ -105,7 +105,6 @@ export function SettingsView({
                     <option>Medium</option>
                     <option>Low</option>
                   </select>
-                  <span className="hint">Lower-severity findings stay in the trace list but do not alert.</span>
                 </div>
 
                 <div className="field">
@@ -113,7 +112,7 @@ export function SettingsView({
                   <textarea
                     className="textarea"
                     id="wsNote"
-                    defaultValue="Red-team sandbox for drafting agents. All findings are illustrative demo data."
+                    defaultValue="Red-team sandbox for drafting agents."
                   />
                 </div>
 
@@ -135,42 +134,44 @@ export function SettingsView({
           <section className="card">
             <div className="card__head">
               <div>
-                <div className="card__title">Sandbox connectivity</div>
+                <div className="card__title">Sandbox Connectivity</div>
                 <div className="card__sub">Health and reachability of the isolated execution environment</div>
               </div>
             </div>
             <div className="card__body">
+              {/* Perfectly Aligned Key-Value Table for Sandbox Status */}
               <div className="kv" style={{ marginBottom: '16px' }}>
-                <div className="kv__row">
+                <div className="kv__row" style={{ alignItems: 'center' }}>
                   <span className="kv__k">Status</span>
-                  <span className="kv__v">
-                    <span className={`badge badge--${isOffline ? 'crit' : 'ok'}`}>
+                  <span className="kv__v" style={{ display: 'flex', alignItems: 'center', height: '28px' }}>
+                    <span className={`badge badge--${isOffline ? 'crit' : 'ok'}`} style={{ display: 'inline-flex', alignItems: 'center' }}>
+                      <span className="pulse" style={{ width: '6px', height: '6px', marginRight: '4px', background: isOffline ? 'var(--sev-crit)' : 'var(--ok)' }}></span>
                       {isOffline ? 'Offline' : 'Connected'}
                     </span>
                   </span>
                 </div>
-                <div className="kv__row">
+                <div className="kv__row" style={{ alignItems: 'center' }}>
                   <span className="kv__k">Endpoint</span>
                   <span className="kv__v mono">sandbox://local/isolated-01</span>
                 </div>
-                <div className="kv__row">
+                <div className="kv__row" style={{ alignItems: 'center' }}>
                   <span className="kv__k">Cached run</span>
                   <span className="kv__v mono">run_0912</span>
                 </div>
-                <div className="kv__row">
+                <div className="kv__row" style={{ alignItems: 'center' }}>
                   <span className="kv__k">Egress policy</span>
                   <span className="kv__v">Allow-list · external sends require approval</span>
                 </div>
               </div>
 
               {isOffline && (
-                <div className="banner">
+                <div className="banner" style={{ marginBottom: '16px' }}>
                   <Icon name="plug" />
-                  <span className="banner__txt">
+                  <span style={{ flex: 1 }}>
                     Sandbox unreachable — displaying cached evaluation run <b>run_0912</b>.
                   </span>
                   <button className="btn btn--secondary btn--sm" onClick={onToggleOffline}>
-                    Retry connection
+                    Retry Connection
                   </button>
                 </div>
               )}
@@ -187,7 +188,7 @@ export function SettingsView({
           <section className="card">
             <div className="card__head">
               <div>
-                <div className="card__title">Team</div>
+                <div className="card__title">Team Members</div>
                 <div className="card__sub">People with access to this workspace</div>
               </div>
             </div>
@@ -231,7 +232,7 @@ export function SettingsView({
           <section className="card">
             <div className="card__head">
               <div>
-                <div className="card__title">API reference</div>
+                <div className="card__title">API Specification</div>
                 <div className="card__sub">Core endpoints the dashboard is designed to call</div>
               </div>
             </div>
@@ -249,7 +250,7 @@ export function SettingsView({
                     {apiReference.map((e, idx) => (
                       <tr key={idx}>
                         <td data-label="Method">
-                          <span className="badge badge--neutral badge--plain mono">{e.method}</span>
+                          <span className="badge badge--neutral mono">{e.method}</span>
                         </td>
                         <td data-label="Path" className="mono">{e.path}</td>
                         <td data-label="Summary" className="small">{e.summary}</td>
@@ -279,13 +280,6 @@ export function SettingsView({
                     ))}
                   </tbody>
                 </table>
-              </div>
-
-              <div className="banner banner--warn" style={{ marginTop: '16px', marginBottom: 0 }}>
-                <Icon name="alert" />
-                <span className="banner__txt">
-                  Endpoint paths and field names follow the brief. Reconcile against the team’s API contract before wiring the live client.
-                </span>
               </div>
             </div>
           </section>

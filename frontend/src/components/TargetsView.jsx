@@ -2,122 +2,145 @@ import React from 'react';
 import { Icon } from './Icons';
 
 export function TargetsView({ targetAgents, onSelectTarget, onLaunchCampaign, onToast }) {
-  const getRiskClass = (r) => {
-    return r === 'critical' ? 'crit' : r === 'high' ? 'high' : r === 'medium' ? 'warn' : 'ok';
+  const getRiskBadge = (risk) => {
+    switch (risk) {
+      case 'critical':
+        return <span className="badge badge--crit">Critical Risk</span>;
+      case 'high':
+        return <span className="badge badge--high">High Risk</span>;
+      case 'medium':
+        return <span className="badge badge--med">Medium Risk</span>;
+      default:
+        return <span className="badge badge--low">Low Risk</span>;
+    }
   };
 
   return (
     <div>
       <div className="page-head">
         <div>
-          <h1 className="page-title">Target agents & scope</h1>
+          <h1 className="page-title">Target Agents & Scope Directory</h1>
           <p className="page-sub">
-            Register agents under test, review their declared tools, and inspect the permission scope being audited.
+            Enrolled target AI agents evaluated inside the isolated red-team sandbox. Review declared tool bindings, memory limits, and access scopes.
           </p>
+        </div>
+        <div className="page-head__actions">
+          <button className="btn btn--primary" onClick={onLaunchCampaign}>
+            <Icon name="zap" size="sm" />
+            Launch Red-Team Campaign
+          </button>
         </div>
       </div>
 
-      <div className="agent-grid">
-        {targetAgents.map((a) => (
-          <article key={a.target_agent_id} className="card" style={{ padding: '16px', display: 'grid', gap: '12px' }}>
-            <div className="row-between">
-              <div className="od-row" style={{ gap: '10px' }}>
-                <span className={`metric__ic ${getRiskClass(a.risk)}`}>
-                  <Icon name="target" />
-                </span>
-                <div>
-                  <div style={{ fontWeight: 800 }}>{a.name}</div>
-                  <div className="small muted mono">{a.target_agent_id}</div>
-                </div>
-              </div>
-              <span className={`badge badge--${a.status === 'active' ? 'ok' : 'warn'}`}>
-                {a.status.charAt(0).toUpperCase() + a.status.slice(1)}
-              </span>
+      {/* Target Agents Table Layout (Reorganized for Clean Presentation) */}
+      <section className="card" style={{ marginBottom: 'var(--gap)' }}>
+        <div className="card__head">
+          <div>
+            <div className="card__title">Registered Target Agents</div>
+            <div className="card__sub">Configured agent instances and tool capabilities under security audit</div>
+          </div>
+        </div>
+        <div className="card__body card__body--flush">
+          <div className="table-wrap">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Target Agent</th>
+                  <th>Model & Memory</th>
+                  <th>Risk Assessment</th>
+                  <th>Status</th>
+                  <th>Declared Scope</th>
+                  <th>Last Tested</th>
+                  <th style={{ textAlign: 'right' }}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {targetAgents.map((agent) => (
+                  <tr key={agent.target_agent_id}>
+                    <td>
+                      <div className="cell-main">{agent.name}</div>
+                      <div className="cell-sub mono">{agent.target_agent_id}</div>
+                      <div className="small muted" style={{ marginTop: '2px', maxWidth: '300px' }}>
+                        {agent.description}
+                      </div>
+                    </td>
+                    <td>
+                      <div className="small" style={{ fontWeight: 700 }}>{agent.model}</div>
+                      <div className="cell-sub">Memory: <b>{agent.memory}</b></div>
+                    </td>
+                    <td>{getRiskBadge(agent.risk)}</td>
+                    <td>
+                      <span className={`badge badge--${agent.status === 'active' ? 'ok' : 'neutral'}`}>
+                        {agent.status.charAt(0).toUpperCase() + agent.status.slice(1)}
+                      </span>
+                    </td>
+                    <td>
+                      <div className="od-cluster" style={{ gap: '4px' }}>
+                        {agent.scope.map((s) => (
+                          <span key={s} className="tag mono">{s}</span>
+                        ))}
+                      </div>
+                      <div className="cell-sub" style={{ marginTop: '4px' }}>
+                        {agent.tools_count} connected tools
+                      </div>
+                    </td>
+                    <td className="small muted nowrap">{agent.last_tested}</td>
+                    <td>
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+                        <button
+                          className="btn btn--secondary btn--sm"
+                          onClick={() => {
+                            onSelectTarget(agent);
+                            onToast('Scope Loaded', `${agent.name} permissions loaded into workspace scope.`, 'ok');
+                          }}
+                        >
+                          Open Scope
+                        </button>
+                        <button
+                          className="btn btn--primary btn--sm"
+                          onClick={onLaunchCampaign}
+                        >
+                          <Icon name="zap" size="sm" /> Probe Target
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      {/* Scope Policy Reference */}
+      <section className="card">
+        <div className="card__head">
+          <div>
+            <div className="card__title">Sandbox Isolation Policy & Guardrails</div>
+            <div className="card__sub">Automated runtime constraints enforced during red-team evaluation</div>
+          </div>
+        </div>
+        <div className="card__body">
+          <div className="kv">
+            <div className="kv__row">
+              <span className="kv__k">Sandbox Runtime</span>
+              <span className="kv__v">Isolated execution container with egress allow-list filters</span>
             </div>
-
-            <p className="small muted" style={{ margin: 0 }}>{a.description}</p>
-
-            <div className="od-cluster" style={{ gap: '6px' }}>
-              {a.scope.map((s) => (
-                <span key={s} className="tag mono">{s}</span>
-              ))}
+            <div className="kv__row">
+              <span className="kv__k">Tool Interceptor</span>
+              <span className="kv__v">Active — inspects and logs every tool invocation and argument provenance</span>
             </div>
-
-            <div className="kv" style={{ border: 0, background: 'transparent' }}>
-              <div className="kv__row" style={{ background: 'transparent', padding: '4px 0', gridTemplateColumns: '110px 1fr' }}>
-                <span className="kv__k">Risk</span>
-                <span className="kv__v">
-                  <span className={`badge badge--${getRiskClass(a.risk)}`}>
-                    {a.risk.charAt(0).toUpperCase() + a.risk.slice(1)}
-                  </span>
-                </span>
-              </div>
-              <div className="kv__row" style={{ background: 'transparent', padding: '4px 0', gridTemplateColumns: '110px 1fr' }}>
-                <span className="kv__k">Memory</span>
-                <span className="kv__v small">{a.memory}</span>
-              </div>
-              <div className="kv__row" style={{ background: 'transparent', padding: '4px 0', gridTemplateColumns: '110px 1fr' }}>
-                <span className="kv__k">Tools</span>
-                <span className="kv__v small">{a.tools_count} connected</span>
-              </div>
-              <div className="kv__row" style={{ background: 'transparent', padding: '4px 0', gridTemplateColumns: '110px 1fr' }}>
-                <span className="kv__k">Last tested</span>
-                <span className="kv__v small">{a.last_tested}</span>
-              </div>
+            <div className="kv__row">
+              <span className="kv__k">Memory Boundary</span>
+              <span className="kv__v">Session writes are isolated; untrusted user text is prevented from auto-promotion to long-term memory</span>
             </div>
-
-            <div className="od-row" style={{ gap: '8px' }}>
-              <button
-                className="btn btn--secondary btn--sm od-fill"
-                onClick={() => {
-                  onSelectTarget(a);
-                  onToast('Scope loaded', `${a.name} permissions are loaded into the sandbox.`, 'ok');
-                }}
-              >
-                Open scope
-              </button>
-              <button
-                className="btn btn--primary btn--sm od-fill"
-                onClick={onLaunchCampaign}
-              >
-                <Icon name="zap" size="sm" />
-                Probe
-              </button>
-            </div>
-          </article>
-        ))}
-      </div>
-
-      <div style={{ marginTop: 'var(--gap)' }}>
-        <section className="card">
-          <div className="card__head">
-            <div>
-              <div className="card__title">Scope policy</div>
-              <div className="card__sub">How the sandbox constrains target behaviour during a run</div>
+            <div className="kv__row">
+              <span className="kv__k">Trace Recording</span>
+              <span className="kv__v">Deterministic input/output tuples captured for exact exploit reproducibility</span>
             </div>
           </div>
-          <div className="card__body">
-            <div className="kv">
-              <div className="kv__row">
-                <span className="kv__k">Environment</span>
-                <span className="kv__v">Isolated sandbox · network egress allow-listed</span>
-              </div>
-              <div className="kv__row">
-                <span className="kv__k">Tool interceptor</span>
-                <span className="kv__v">Enabled — every outbound call is recorded with argument origin</span>
-              </div>
-              <div className="kv__row">
-                <span className="kv__k">Memory policy</span>
-                <span className="kv__v">Writes tagged trusted / untrusted; untrusted entries never auto-promoted</span>
-              </div>
-              <div className="kv__row">
-                <span className="kv__k">Trace capture</span>
-                <span className="kv__v">Deterministic input/output tuples for exact replay</span>
-              </div>
-            </div>
-          </div>
-        </section>
-      </div>
+        </div>
+      </section>
     </div>
   );
 }
