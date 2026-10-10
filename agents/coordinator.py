@@ -239,12 +239,16 @@ class RedTeamCoordinator:
             if any(f.attempt_id == att.attempt_id and f.success for f in baseline_trace.findings)
         ]
 
+        live_log(f"--- Starting Defense Validation for baseline run {baseline_run_id} ---")
+        live_log(f"Replaying {len(successful_attempts)} baseline exploits against hardened defense sandbox...")
+
         replay_failures_blocked = 0
         exact_replay_findings_count = 0
         family_results: List[FamilyReplayResult] = []
 
         mode = baseline_trace.execution_mode
         for att in successful_attempts:
+            live_log(f"\n[Baseline Replay] Replaying original exploit for {att.family.value}...")
             # Replay against fresh sandbox with defense profile applied
             replay_sandbox = BankingSandboxRuntime(defense=defense)
             replay_agent = ToolCallingBankAgent(sandbox=replay_sandbox, model_client=self.client)
@@ -262,7 +266,7 @@ class RedTeamCoordinator:
                 adaptation_notes="Exact baseline replay against defense",
                 timestamp=time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
             )
-            live_log("Evaluating attempt with Security Judge...")
+            live_log("Evaluating replayed exploit with Security Judge...")
             replay_finding = SecurityJudge.evaluate_attempt(
                 attempt=replay_att,
                 target_profile=baseline_trace.target_profile,
@@ -273,8 +277,10 @@ class RedTeamCoordinator:
             is_replayed = replay_finding.success
             if is_replayed:
                 exact_replay_findings_count += 1
+                live_log(f"Replay Outcome: Breached! (Exploit still succeeded)")
             else:
                 replay_failures_blocked += 1
+                live_log(f"Replay Outcome: Blocked! (Hardened defense neutralised baseline exploit)")
 
             # 2. At most one newly generated adaptive bypass attempt for this family
             bypass_sandbox = BankingSandboxRuntime(defense=defense)
@@ -287,7 +293,7 @@ class RedTeamCoordinator:
 
             if bypass_plan:
                 adaptive_attempted = True
-                live_log(f"\n[Attempt {attempt_num}/{self.max_attempts}] Generating payload for {plan.family.value}...")
+                live_log(f"\n[Adaptive Bypass] Generating hardened bypass payload for {bypass_plan.family.value}...")
                 bypass_payload, adaptation_notes = self.generator.generate_payload(
                     plan=bypass_plan,
                     attempt_num=2,
@@ -295,6 +301,7 @@ class RedTeamCoordinator:
                     judge_feedback=replay_finding.evidence or "Blocked by defense profile",
                     execution_mode=mode,
                 )
+                live_log(f"Sending adaptive payload to Target Agent:\n  -> \"{bypass_payload[:60]}...\"")
                 bypass_resp = bypass_agent.handle_message(bypass_payload, execution_mode=mode)
                 adaptive_att = AttackAttempt(
                     attempt_id=att.attempt_id + 100,
@@ -308,7 +315,7 @@ class RedTeamCoordinator:
                     adaptation_notes=adaptation_notes,
                     timestamp=time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
                 )
-                live_log("Evaluating attempt with Security Judge...")
+                live_log("Evaluating adaptive bypass with Security Judge...")
                 adaptive_finding = SecurityJudge.evaluate_attempt(
                     attempt=adaptive_att,
                     target_profile=baseline_trace.target_profile,
@@ -316,6 +323,7 @@ class RedTeamCoordinator:
                     attempt_id=adaptive_att.attempt_id,
                 )
                 adaptive_succeeded = adaptive_finding.success
+                live_log(f"Adaptive Bypass Outcome: {'Success (Bypassed Defense)' if adaptive_succeeded else 'Blocked (Defense Held)'}")
 
             family_results.append(
                 FamilyReplayResult(

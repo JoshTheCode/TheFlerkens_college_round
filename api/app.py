@@ -176,7 +176,27 @@ def get_attack_trace(run_id: str) -> ExecutionTrace:
 
 
 @app.post("/api/v1/defenses/validate", response_model=EvaluationReport, operation_id="validateDefense")
-def validate_defense(req: DefenseValidationRequest) -> EvaluationReport:
+def validate_defense(req: DefenseValidationRequest, request: Request = None) -> EvaluationReport:
+    clear_logs()
+    if request:
+        api_key = request.headers.get("x-api-key") or (
+            request.headers.get("authorization", "").replace("Bearer ", "").strip()
+        )
+        model = request.headers.get("x-red-team-model")
+        provider_url = request.headers.get("x-provider-url")
+        if api_key:
+            coordinator.client.api_key = api_key
+            coordinator.planner.client.api_key = api_key
+            coordinator.generator.client.api_key = api_key
+        if model:
+            coordinator.client.model = model
+            coordinator.planner.client.model = model
+            coordinator.generator.client.model = model
+        if provider_url:
+            coordinator.client.base_url = provider_url
+            coordinator.planner.client.base_url = provider_url
+            coordinator.generator.client.base_url = provider_url
+
     try:
         defense = req.defense_profile or DefenseProfile()
         return coordinator.validate_defense(
@@ -186,6 +206,11 @@ def validate_defense(req: DefenseValidationRequest) -> EvaluationReport:
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(e),
+        )
+    except RuntimeError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e),
         )
 
