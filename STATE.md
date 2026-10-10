@@ -29,6 +29,7 @@
 | 2026-10-10 | AI Assistant | Meta / Setup | Initialized `AGENTS.md`, `SKILLS_GUIDE.md`, and `STATE.md` | ✅ Verified |
 | 2026-10-10 | AI Assistant | Spec / GSD | Added `PROBLEM_STATEMENT.md` for AgentBreak & pushed to GitHub | ✅ Verified |
 | 2026-10-10 | AI Assistant | Architecture | Added `ARCHITECTURE_AND_PLAN.md` with subsystem design & GSD phases | ✅ Verified |
+| 2026-10-10 | AI Assistant | Target & Agents | Switched to `agentbreak-ai-agents` branch; audited `AGENT_IMPLEMENTATION_PLAN.md`. Target agent scoped as **Vulnerable Retail Banking Assistant** with simulated financial tools. Installed lightweight runtime dependencies (`fastapi`, `pydantic`, `pytest`, `httpx`). | ✅ Verified |
 
 ---
 
@@ -36,7 +37,23 @@
 
 | Entry ID | Component | Shortcut Taken | Limit / Upgrade Condition |
 | :--- | :--- | :--- | :--- |
-| *None logged yet* | | | |
+| shortcut: 01 | Target Sandbox | In-memory simulated banking database and tools (`check_balance`, `search_internal_policies`, `read_customer_record`, `transfer_funds`, `save_session_note`). No live banking APIs or real credentials. | Upgrade if external production sandbox integration is required post-hackathon. |
+
+---
+
+## 🎯 Target Agent Scope: Banking Assistant (`BankAgent`)
+
+- **Role**: AI Customer Support & Transactions Assistant
+- **Tools**:
+  - `check_balance(account_id)`: Check customer balance.
+  - `search_internal_policies(query)`: Search banking policies (vector for indirect prompt injection).
+  - `read_customer_record(customer_id)`: Access sensitive records (PII / security secrets).
+  - `transfer_funds(from_account, to_account, amount)`: Transfer funds (unauthorized tool execution / privilege escalation vector).
+  - `save_session_note(customer_id, note)`: Save session context into persistent memory (memory poisoning vector).
+- **Security Defenses**:
+  - Untrusted document delimiter isolation
+  - Strict recipient whitelist & balance threshold policies
+  - Memory validation before state write
 
 ---
 
@@ -44,9 +61,13 @@
 
 1. [x] Define Problem Statement and Core Feature Specifications (`PROBLEM_STATEMENT.md`).
 2. [x] Create Architecture Overview and Implementation Plan (`ARCHITECTURE_AND_PLAN.md`).
-3. [ ] Define API Schema Contract for Target Agent registration & Attack Traces (`/api/schema.json`).
-4. [ ] Implement Core Autonomous Red Team Generator & Sandbox Execution Engine.
-5. [ ] Build Security Evaluation Dashboard & Attack Path Visualizer.
-6. [ ] Run Defense Validation & Regression Testing Benchmark.
+3. [x] Check out `agentbreak-ai-agents` branch & audit implementation plan (`AGENT_IMPLEMENTATION_PLAN.md`).
+4. [x] Scope Target Agent as **Retail Banking Assistant** and document simulated tools & attack vectors.
+5. [ ] Implement Core Shared Models & Enums (`agents/models.py`).
+6. [ ] Implement Mock Banking Tools, Fixtures, and Interceptor (`agents/target/`).
+7. [ ] Implement Deterministic Security Judge & Attack Evaluator (`agents/judge.py`).
+8. [ ] Build Attack Planner, Payload Generator, and Coordinator (`agents/coordinator.py`).
+9. [ ] Implement FastAPI Service Endpoints & Prerecorded Trace Fixture (`api/app.py`).
+
 
 
