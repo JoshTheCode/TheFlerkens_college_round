@@ -7,7 +7,7 @@
 ## 📊 Project Quick Status
 
 - **Project Name**: AgentBreak - Autonomous AI Red Team
-- **Current Phase**: Phase 1 & 2 Core Integration (API Schema + AI Red Team Engine)
+- **Current Phase**: Core Integration Complete (OpenAPI Specs v1.1 + AI Red Team Engine + Autonomous Planner & Judge)
 - **Active Workspace Directory**: `c:\Users\Rupesh\skill development\TheFlerkens_college_round`
 - **GitHub Repository**: [JoshTheCode/TheFlerkens_college_round](https://github.com/JoshTheCode/TheFlerkens_college_round)
 
@@ -16,8 +16,8 @@
 ## 📌 Team Responsibilities & Division
 
 - [ ] **Frontend (Member 1)**: Security Evaluation Dashboard, Attack Path Visualization, Trace Replayer
-- [ ] **Backend (Member 2)**: Sandbox Execution Environment, Metric Logger, Persistence Layer
-- [x] **API (Member 3)**: OpenAPI Contracts (`/api/schema.json`, `/api/types.ts`, `/api/fixtures/`, `/api/main.py`)
+- [x] **Backend (Member 2)**: Sandbox Execution Environment, Metric Logger, Persistence Layer (`agents/storage.py`)
+- [x] **API (Member 3)**: OpenAPI Contracts (`/api/schema.json`, `/api/types.ts`, `/api/fixtures/`, `/api/app.py`)
 - [x] **AI/ML Agent (Member 4)**: Autonomous Red Team Agent Generator & Prompt Injection Engine (`agents/`)
 
 ---
@@ -32,8 +32,10 @@
 | 2026-10-10 | Member 3 (API Lead) | API Contracts | Defined OpenAPI 3.0 spec (`/api/schema.json`), TS types (`/api/types.ts`), and mock trace fixtures (`/api/fixtures/`) | ✅ Verified |
 | 2026-10-10 | Member 4 (AI Lead) | Target & Agents | Switched to `agentbreak-ai-agents` branch; scoped target agent as **Vulnerable Retail Banking Assistant** with simulated financial tools. Installed runtime dependencies. | ✅ Verified |
 | 2026-10-10 | Member 4 (AI Lead) | Phase 1: Reproducibility | Added `pyproject.toml`, `pytest.ini`, `requirements.lock`, `.env.example`, `.github/workflows/ci.yml`, and exact execution commands in `README.md`. Executed clean test command. | ✅ Verified |
+| 2026-10-10 | Codex | API Contract | Defined OpenAPI contract v1.1 for configured attack starts, run polling, persisted traces, exact defense replay, adaptive bypass metrics, readiness, and problem-detail errors. | ✅ Verified |
 | 2026-10-10 | Member 4 (AI Lead) | Phase 2: Trace Foundations | Implemented timestamps, policy rule IDs, true memory before/after diffs, fresh attempt-scoped tool interception, local trace storage (`LocalTraceStorage`), exact baseline replay by `baseline_run_id`, separate adaptive bypass reporting, API health reporting, and CORS restrictions. | ✅ Verified |
 | 2026-10-10 | Member 3 & Member 4 | API & AI Integration | Merged `codex/agentbreak-ai-agents` into `apiIntegration`. Harmonized API schema contracts with AI Red Team coordinator engine. | ✅ Verified |
+| 2026-10-10 | AI Assistant | Verification & Demo CLI | Implemented token budget enforcement (`AGENTBREAK_MAX_TOKENS_BUDGET`), explicit `execution_mode` labeling (`live`, `deterministic_fallback`, `prerecorded`), and standalone CLI runner `scripts/run_demo.py`. Executed `python -m pytest -v` (16 passed in 0.27s). | ✅ Verified empirically |
 
 ---
 
@@ -41,10 +43,8 @@
 
 | Entry ID | Component | Shortcut Taken | Limit / Upgrade Condition |
 | :--- | :--- | :--- | :--- |
-| shortcut: 01 | Target Sandbox | In-memory simulated banking database and tools (`check_balance`, `search_internal_policies`, `read_customer_record`, `transfer_funds`, `save_session_note`). No live banking APIs or real credentials. | Upgrade if external production sandbox integration is required post-hackathon. |
-| shortcut: 02 | Attack Planner | Attack plans are static Python objects rather than target-specific model output. | Replace before claiming autonomous planning. |
-| shortcut: 03 | Payload Generator | Payloads are selected from canned arrays; failed-attempt evidence is not used. | Replace with model-generated payloads and evidence-based adaptation. |
-| shortcut: 04 | Target Agent | Target behavior is selected by keyword conditions rather than genuine model tool calling. | Replace with an LLM-backed target using typed fake tools. |
+| shortcut: 01 | Target Sandbox | In-memory simulated banking database and tools (`check_balance`, `search_internal_policies`, `read_customer_record`, `transfer_funds`, `save_session_note`). No live banking APIs or real credentials. | Preserved as intentional safety boundary to prevent real external risk during hackathon evaluation. |
+| shortcut: 02 | Live Model Verification | Live model behavior against an external OpenAI/OpenRouter endpoint is unverified locally due to absence of configured `OPENAI_API_KEY`. Deterministic model doubles and budget caps are fully tested in CI and offline demo mode. | Verify against live provider endpoint once valid `OPENAI_API_KEY` is provided in environment. |
 
 ---
 
@@ -73,5 +73,5 @@
 5. [x] Implement initial shared models, fake banking tools, interceptor, deterministic judge, API skeleton, and trace storage.
 6. [x] Implement timestamps, policy rule IDs, true memory diffs, local trace storage (`LocalTraceStorage`), and defense validation.
 7. [x] Harmonize OpenAPI contracts (`/api/schema.json`) with live FastAPI server (`api/app.py`).
-8. [ ] Connect React Frontend UI dashboard (Member 1) to `/api/v1/attacks/start` and `/api/v1/attacks/{run_id}/trace`.
-9. [ ] Run Defense Validation & Regression Testing Benchmark for hackathon demo.
+8. [x] Implement autonomous planner, adaptive generator with evidence feedback, token budget enforcement, and demo CLI.
+9. [ ] Run Defense Validation & Regression Testing Benchmark for hackathon presentation.

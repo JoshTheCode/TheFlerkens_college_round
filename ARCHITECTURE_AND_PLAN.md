@@ -86,6 +86,7 @@ AgentBreak consists of four core decoupled subsystems designed to autonomously p
 ### Phase 1: Reproducibility & Contracts
 - [x] Create `PROBLEM_STATEMENT.md` and define architectural boundaries.
 - [x] Set up a mock payload fixture for attack traces.
+- [x] Define the versioned OpenAPI 3.1 integration contract in `api/openapi.json`.
 - [ ] Add `pyproject.toml`, lockfile, `.env.example`, documented commands, and CI.
 - [ ] Make the deterministic suite pass from a clean checkout.
 - [ ] Define and test stable API and trace schemas.

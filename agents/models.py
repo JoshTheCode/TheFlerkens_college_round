@@ -103,16 +103,19 @@ class DefenseProfile(BaseModel):
 class ExecutionTrace(BaseModel):
     run_id: str
     status: RunStatus
+    execution_mode: str = "deterministic_fallback"  # "live" | "deterministic_fallback" | "prerecorded"
     target_profile: TargetProfile
     defense_profile: Optional[DefenseProfile] = None
     plans: List[AttackPlan] = Field(default_factory=list)
     attempts: List[AttackAttempt] = Field(default_factory=list)
     findings: List[Finding] = Field(default_factory=list)
     total_findings_count: int = 0
+    total_tokens_used: int = 0
     stopping_reason: str = "All attack families completed"
     start_time: str
     end_time: Optional[str] = None
     is_prerecorded: bool = False
+
 
 
 class DefenseValidationRequest(BaseModel):
