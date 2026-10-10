@@ -58,6 +58,31 @@ def test_missing_run_id_returns_404(client):
     res = client.get("/api/v1/attacks/nonexistent_run_999")
     assert res.status_code == 404
 
+
+def test_start_attack_run_accepts_mode_and_body(client):
+    res = client.post(
+        "/api/v1/attacks/start",
+        json={"target_id": "bank_agent_v1", "execution_mode": "deterministic_fixture"},
+    )
+    assert res.status_code == 200
+    data = res.json()
+    assert data["execution_mode"] == "deterministic_fixture"
+    assert data["total_findings_count"] >= 2
+
+
+def test_runtime_openapi_matches_committed_contract():
+    import json
+    from pathlib import Path
+    spec_path = Path("api/openapi.json")
+    committed = json.loads(spec_path.read_text(encoding="utf-8"))
+    runtime = app.openapi()
+
+    assert runtime["info"]["version"] == committed["info"]["version"]
+    assert set(runtime["paths"].keys()) == set(committed["paths"].keys())
+    assert runtime["info"]["version"] == "1.1.0"
+
+
+def test_nonexistent_trace_and_defense_validation_404(client):
     res_trace = client.get("/api/v1/attacks/nonexistent_run_999/trace")
     assert res_trace.status_code == 404
 
@@ -66,3 +91,4 @@ def test_missing_run_id_returns_404(client):
         json={"baseline_run_id": "nonexistent_run_999"},
     )
     assert res_val.status_code == 404
+

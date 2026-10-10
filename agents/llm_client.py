@@ -69,15 +69,16 @@ class ModelClient:
                 data = resp.json()
         except httpx.HTTPError as exc:
             raise RuntimeError(f"Model provider communication failed: {str(exc)}") from exc
-            tokens = 0
-            if "usage" in data and "total_tokens" in data["usage"]:
-                tokens = int(data["usage"]["total_tokens"])
-                self.cumulative_tokens += tokens
-            data["_metadata"] = {
-                "provider": self.base_url,
-                "model": self.model,
-                "latency_ms": latency_ms,
-                "tokens": tokens,
-            }
-            return data
+
+        tokens = 0
+        if "usage" in data and "total_tokens" in data["usage"]:
+            tokens = int(data["usage"]["total_tokens"])
+            self.cumulative_tokens += tokens
+        data["_metadata"] = {
+            "provider": self.base_url,
+            "model": self.model,
+            "latency_ms": latency_ms,
+            "tokens": tokens,
+        }
+        return data
 

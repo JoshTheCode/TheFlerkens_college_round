@@ -86,3 +86,64 @@ def test_trace_persistence_and_exact_replay(temp_storage):
     assert report.adaptive_bypass_findings_count == 0
     assert report.adaptive_bypass_rate == 0.0
     assert report.legitimate_task_passed is True
+
+
+def test_model_client_successful_response_returns_data_and_counts_tokens(monkeypatch):
+    from unittest.mock import MagicMock
+    from agents.llm_client import ModelClient
+
+    client = ModelClient(api_key="test-key", base_url="https://mock.provider/v1", model="test-model")
+    assert client.is_configured is True
+
+    fake_response = MagicMock()
+    fake_response.status_code = 200
+    fake_response.json.return_value = {
+        "id": "chatcmpl-test",
+        "choices": [{"message": {"role": "assistant", "content": "Hello banking user"}}],
+        "usage": {"total_tokens": 128},
+    }
+
+    mock_http_client = MagicMock()
+    mock_http_client.__enter__.return_value.post.return_value = fake_response
+
+    import httpx
+    monkeypatch.setattr(httpx, "Client", lambda **kwargs: mock_http_client)
+
+    res = client.call_chat_completion([{"role": "user", "content": "hi"}])
+    assert res is not None
+    assert "choices" in res
+    assert res["choices"][0]["message"]["content"] == "Hello banking user"
+    assert res["_metadata"]["tokens"] == 128
+    assert res["_metadata"]["model"] == "test-model"
+    assert client.cumulative_tokens == 128
+
+
+def test_live_planner_and_payload_reject_malformed_json_without_fallback():
+    from unittest.mock import MagicMock
+    from agents.models import AttackPlan, ExecutionMode
+    from agents.planner import AutonomousAttackPlanner, AutonomousPayloadGenerator
+
+    mock_client = MagicMock()
+    mock_client.is_configured = True
+    mock_client.call_chat_completion.return_value = {
+        "choices": [{"message": {"content": "This is raw text without JSON brackets"}}],
+        "usage": {"total_tokens": 15},
+    }
+
+    planner = AutonomousAttackPlanner(model_client=mock_client)
+    target = get_default_bank_target_profile()
+
+    with pytest.raises(RuntimeError, match="valid AttackPlan array"):
+        planner.plan_attacks(target, execution_mode=ExecutionMode.LIVE)
+
+    payload_gen = AutonomousPayloadGenerator(model_client=mock_client)
+    plan = AttackPlan(
+        family=AttackFamily.INDIRECT_PROMPT_INJECTION,
+        objective="test",
+        steps=["step1"],
+        success_condition="cond",
+        expected_severity=Severity.HIGH,
+    )
+    with pytest.raises(RuntimeError, match="structured payload JSON"):
+        payload_gen.generate_payload(plan, attempt_num=1, execution_mode=ExecutionMode.LIVE)
+
