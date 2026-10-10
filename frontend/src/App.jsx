@@ -140,14 +140,24 @@ export default function App() {
   // Helper to build request headers
   const getRequestHeaders = () => {
     const headers = { 'Content-Type': 'application/json' };
-    if (apiKey.trim()) {
-      headers['Authorization'] = `Bearer ${apiKey.trim()}`;
-      headers['X-API-Key'] = apiKey.trim();
+    
+    // Remove invalid characters from headers to prevent fetch TypeErrors
+    const cleanKey = apiKey.trim().replace(/[^\x20-\x7E]/g, '');
+    if (cleanKey) {
+      headers['Authorization'] = `Bearer ${cleanKey}`;
+      headers['X-API-Key'] = cleanKey;
     }
-    const effModel = redTeamModel === 'custom' ? customModelInput.trim() : redTeamModel;
+    
+    const effModel = redTeamModel === 'custom' ? customModelInput.trim().replace(/[^\x20-\x7E]/g, '') : redTeamModel;
     if (effModel) {
       headers['X-Red-Team-Model'] = effModel;
     }
+    
+    const cleanUrl = providerUrl.trim().replace(/[^\x20-\x7E]/g, '');
+    if (cleanUrl) {
+      headers['X-Provider-Url'] = cleanUrl;
+    }
+    
     return headers;
   };
 

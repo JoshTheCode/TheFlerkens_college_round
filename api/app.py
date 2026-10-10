@@ -39,7 +39,7 @@ app.add_middleware(
     ],
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allow_headers=["*"],
+    allow_headers=["*", "Authorization", "X-API-Key", "X-Red-Team-Model", "X-Provider-Url"],
 )
 
 coordinator = RedTeamCoordinator()
@@ -49,13 +49,15 @@ coordinator = RedTeamCoordinator()
 async def health_check(request: Request) -> Dict[str, Any]:
     api_key_header = None
     model_header = None
+    provider_header = None
     if request:
         api_key_header = request.headers.get("x-api-key") or (
             request.headers.get("authorization", "").replace("Bearer ", "").strip()
         )
         model_header = request.headers.get("x-red-team-model")
+        provider_header = request.headers.get("x-provider-url")
     
-    provider_url = os.getenv("OPENAI_BASE_URL", "https://openrouter.ai/api/v1")
+    provider_url = provider_header or os.getenv("OPENAI_BASE_URL", "https://openrouter.ai/api/v1")
     model_name = model_header or coordinator.client.model or os.getenv("AGENTBREAK_MODEL", "openai/gpt-4o-mini")
     
     api_key_configured = False
@@ -107,6 +109,7 @@ def start_attack_run(
             request.headers.get("authorization", "").replace("Bearer ", "").strip()
         )
         model = request.headers.get("x-red-team-model")
+        provider_url = request.headers.get("x-provider-url")
         if api_key:
             coordinator.client.api_key = api_key
             coordinator.planner.client.api_key = api_key
@@ -115,6 +118,10 @@ def start_attack_run(
             coordinator.client.model = model
             coordinator.planner.client.model = model
             coordinator.generator.client.model = model
+        if provider_url:
+            coordinator.client.base_url = provider_url
+            coordinator.planner.client.base_url = provider_url
+            coordinator.generator.client.base_url = provider_url
 
     mode = req.execution_mode if req else None
     families = req.attack_families if req else None
