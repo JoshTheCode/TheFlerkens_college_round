@@ -42,7 +42,7 @@ Traditional LLM testing relies on static prompt evaluations. As AI agents gain a
 ## ⏱️ Three-Minute Judge Demo Sequence
 
 - **Minute 1: Target Inspection & Attack Launch (Step 1)**
-  - Open `http://localhost:5173`.
+  - Open `http://localhost:3000`.
   - Review the default **Retail Banking Assistant** victim profile, its privileged tools (`transfer_funds`, `read_customer_record`, `save_session_note`), and target system prompt.
   - Keep the default **Deterministic Sandbox** mode (or toggle Live Model with your API key).
   - Click **Launch Red-Team Attack Suite** — observe the streaming hacker terminal console tracing the orchestrator's decision loop in real-time.
@@ -68,7 +68,7 @@ Traditional LLM testing relies on static prompt evaluations. As AI agents gain a
 AgentBreak is built around a canonical Python FastAPI engine with an interactive React dashboard:
 
 ```text
-Target Agent Profile (Banking / Healthcare / E-Commerce)
+Target Agent Profile (Banking / Healthcare / Enterprise HR)
         │
         ▼
 Autonomous Attack Planner (Live LLM or Verified Fixture)
@@ -91,7 +91,7 @@ Deterministic Security Judge (Rule-based evaluation)
 
 | Subsystem | Directory | Tech Stack | Status / Role |
 | :--- | :--- | :--- | :--- |
-| **Security Dashboard** | `/frontend` | React, Vite, Tailwind/Lucide | Canonical UI on `:5173` |
+| **Security Dashboard** | `/frontend` | React 18, Vite, Monochromatic Design Tokens | Canonical UI on `:3000` |
 | **Red Team Engine & API** | `/api`, `/agents` | Python 3.9+, FastAPI, Pydantic | Canonical Service on `:8000` |
 | **OpenAPI Contract** | `/api/openapi.json` | OpenAPI 3.1.0 | 9 endpoints, 21 schemas |
 | **Node Reference Sandbox** | `/backend` | Node.js, Express, TypeScript | Isolated sandbox reference (5/5 unit tests) |
@@ -120,7 +120,7 @@ cd frontend
 npm install
 npm run dev
 ```
-Open **`http://localhost:5173`** in your browser to access the interactive dashboard.
+Open **`http://localhost:3000`** in your browser to access the interactive dashboard.
 
 ### 3. Optional: Run the Companion Node.js Reference Tests
 ```bash

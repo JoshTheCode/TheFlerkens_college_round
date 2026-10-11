@@ -438,17 +438,7 @@ export default function App() {
   return (
     <div style={{ minHeight: '100vh', background: '#F0F7F9', color: '#1E3842', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
       {/* Top Header Bar */}
-      <header
-        style={{
-          background: '#FFFFFF',
-          borderBottom: '1px solid #D0E2EC',
-          padding: '12px 20px',
-          position: 'sticky',
-          top: 0,
-          zIndex: 40,
-          boxShadow: '0 1px 3px rgba(30,56,66,0.05)',
-        }}
-      >
+      <header className="ab-header">
         <div className="ab-header-inner">
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
             <div
@@ -479,7 +469,7 @@ export default function App() {
           </div>
 
           {/* Header Right Actions */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+          <div className="ab-header-actions" style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
             {/* Truthful Mode Pill */}
             {currentBadge ? (
               <span
@@ -499,7 +489,7 @@ export default function App() {
                 }}
               >
                 <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: currentBadge.color }}></span>
-                {currentBadge.label}
+                <span className="ab-mode-pill-txt">{currentBadge.label}</span>
               </span>
             ) : (
               <div
@@ -525,7 +515,7 @@ export default function App() {
                     background: (selectedMode === 'live' && isLiveConfigured) ? '#F59E0B' : '#2A6A56',
                   }}
                 ></span>
-                <span>
+                <span className="ab-mode-pill-txt">
                   {selectedMode === 'live' && isLiveConfigured
                     ? `Live Model Active (${health?.model || redTeamModel})`
                     : 'Deterministic Sandbox (Offline Benchmark)'}
@@ -691,11 +681,11 @@ export default function App() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
             {/* 1. Victim Agent Selector Section */}
             <div
+              className="ab-card-responsive-pad"
               style={{
                 background: '#FFFFFF',
                 borderRadius: '12px',
                 border: '1px solid #D0E2EC',
-                padding: '24px',
                 boxShadow: '0 1px 3px rgba(30,56,66,0.04)',
               }}
             >
@@ -995,11 +985,11 @@ export default function App() {
 
             {/* 2. Attack Family / Test Suite Selection */}
             <div
+              className="ab-card-responsive-pad"
               style={{
                 background: '#FFFFFF',
                 borderRadius: '12px',
                 border: '1px solid #D0E2EC',
-                padding: '28px',
                 boxShadow: '0 1px 3px rgba(30,56,66,0.04)',
               }}
             >
@@ -1076,7 +1066,7 @@ export default function App() {
                         onChange={() => {}} // Handled by parent div onClick
                         style={{ marginTop: '3px', cursor: 'pointer', width: '16px', height: '16px', accentColor: '#4E90A8' }}
                       />
-                      <div style={{ flex: 1 }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
                           <span style={{ fontWeight: '800', fontSize: '14px', color: '#1E3842' }}>
                             {family.name}
@@ -1380,6 +1370,10 @@ export default function App() {
                           fontSize: '12.5px',
                           lineHeight: '1.5',
                           whiteSpace: 'pre-wrap',
+                          wordBreak: 'break-word',
+                          overflowWrap: 'anywhere',
+                          overflowX: 'auto',
+                          maxWidth: '100%',
                           color: '#2B5B6C',
                           fontFamily: "'JetBrains Mono', monospace",
                         }}
@@ -1436,14 +1430,15 @@ export default function App() {
                 {(trace.attempts || []).map((att) => (
                   <div
                     key={att.attempt_id}
+                    className="ab-card-responsive-pad"
                     style={{
                       background: '#FFFFFF',
                       borderRadius: '10px',
                       border: '1px solid #D0E2EC',
-                      padding: '20px',
+                      boxShadow: '0 1px 3px rgba(30,56,66,0.04)',
                     }}
                   >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                         <span style={{ fontWeight: '800', fontSize: '14px', color: '#1E3842' }}>
                           Attempt #{att.attempt_id}
@@ -1457,21 +1452,21 @@ export default function App() {
                       </span>
                     </div>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '12px' }}>
-                      <div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: '12px' }}>
+                      <div style={{ minWidth: 0 }}>
                         <div style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', color: '#5B7B88', marginBottom: '4px' }}>
                           Adversarial Payload
                         </div>
-                        <pre style={{ background: '#F4F8FA', border: '1px solid #D0E2EC', borderRadius: '6px', padding: '10px', fontSize: '12px', whiteSpace: 'pre-wrap', color: '#1E3842', margin: 0 }}>
+                        <pre style={{ background: '#F4F8FA', border: '1px solid #D0E2EC', borderRadius: '6px', padding: '10px', fontSize: '12px', whiteSpace: 'pre-wrap', wordBreak: 'break-word', overflowWrap: 'anywhere', overflowX: 'auto', maxWidth: '100%', color: '#1E3842', margin: 0 }}>
                           {att.payload}
                         </pre>
                       </div>
 
-                      <div>
+                      <div style={{ minWidth: 0 }}>
                         <div style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', color: '#5B7B88', marginBottom: '4px' }}>
                           Target Assistant Response
                         </div>
-                        <pre style={{ background: '#F4F8FA', border: '1px solid #D0E2EC', borderRadius: '6px', padding: '10px', fontSize: '12px', whiteSpace: 'pre-wrap', color: '#1E3842', margin: 0 }}>
+                        <pre style={{ background: '#F4F8FA', border: '1px solid #D0E2EC', borderRadius: '6px', padding: '10px', fontSize: '12px', whiteSpace: 'pre-wrap', wordBreak: 'break-word', overflowWrap: 'anywhere', overflowX: 'auto', maxWidth: '100%', color: '#1E3842', margin: 0 }}>
                           {att.target_response}
                         </pre>
                       </div>
@@ -1486,6 +1481,7 @@ export default function App() {
                           {att.tool_calls.map((tc, tcIdx) => (
                             <span
                               key={tcIdx}
+                              className="ab-tool-call-pill"
                               style={{
                                 fontSize: '11px',
                                 background: '#E2EFF3',
@@ -1494,6 +1490,11 @@ export default function App() {
                                 padding: '3px 8px',
                                 borderRadius: '4px',
                                 fontFamily: 'monospace',
+                                wordBreak: 'break-all',
+                                overflowWrap: 'anywhere',
+                                maxWidth: '100%',
+                                whiteSpace: 'normal',
+                                display: 'inline-block',
                               }}
                             >
                               {tc.tool}({JSON.stringify(tc.arguments)})
@@ -1512,11 +1513,11 @@ export default function App() {
         {/* STEP 3: DEFENSE VALIDATION & REPLAY PROOF */}
         {step === 3 && defenseReport && (
           <div
+            className="ab-card-responsive-pad"
             style={{
               background: '#FFFFFF',
               borderRadius: '12px',
               border: '1px solid #D0E2EC',
-              padding: '32px',
               boxShadow: '0 1px 3px rgba(30,56,66,0.04)',
             }}
           >
@@ -2034,12 +2035,13 @@ export default function App() {
 
       {loading && (
         <div style={{
-          position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
           backgroundColor: 'rgba(15, 23, 42, 0.7)', backdropFilter: 'blur(4px)',
-          zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center'
+          zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: '16px', boxSizing: 'border-box'
         }}>
           <div style={{
-            width: '800px', maxWidth: '90%', height: '500px', background: '#0f172a',
+            width: '800px', maxWidth: '100%', height: '500px', maxHeight: '85vh', background: '#0f172a',
             borderRadius: '8px', overflow: 'hidden', display: 'flex', flexDirection: 'column',
             boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255,255,255,0.1)'
           }}>
@@ -2047,12 +2049,12 @@ export default function App() {
             <div style={{
               height: '32px', background: '#1e293b', display: 'flex', alignItems: 'center', padding: '0 16px', borderBottom: '1px solid #334155'
             }}>
-              <div style={{ display: 'flex', gap: '8px' }}>
+              <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
                 <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#ef4444' }}></div>
                 <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#eab308' }}></div>
                 <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#22c55e' }}></div>
               </div>
-              <div style={{ flex: 1, textAlign: 'center', color: '#94a3b8', fontSize: '12px', fontWeight: '500', letterSpacing: '0.5px', marginLeft: '-48px' }}>
+              <div style={{ flex: 1, textAlign: 'center', color: '#94a3b8', fontSize: '12px', fontWeight: '500', letterSpacing: '0.5px', padding: '0 10px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 agentbreak-orchestrator — {selectedMode === 'live' ? 'live_model_execution' : 'deterministic_fixture'}
               </div>
             </div>

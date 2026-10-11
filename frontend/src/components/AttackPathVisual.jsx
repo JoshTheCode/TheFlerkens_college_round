@@ -176,7 +176,7 @@ export function DefendedPathVisual({ report, target }) {
       num: 3,
       badge: '0 CALLS ALLOWED',
       title: 'Blocked Tool Call',
-      desc: 'Sandbox interceptor aborts unauthorized tool executionDerives safe refusal response to caller.',
+      desc: 'Sandbox interceptor aborts unauthorized tool execution. Derives safe refusal response to caller.',
       detail: 'ToolCallInterceptor: BLOCKED (0 leaks)',
       icon: 'lock',
       variant: 'active',
