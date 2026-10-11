@@ -22,6 +22,7 @@ class AttackRunRequest(BaseModel):
     target_id: Optional[str] = "bank_agent_v1"
     attack_families: Optional[List[AttackFamily]] = None
     execution_mode: Optional[ExecutionMode] = None
+    defense_profile: Optional[DefenseProfile] = None
 
 
 app = FastAPI(
@@ -130,6 +131,7 @@ def start_attack_run(
     mode = req.execution_mode if req else None
     families = req.attack_families if req else None
     target_id = req.target_id if req else None
+    defense = req.defense_profile if req else None
     
     from fastapi import HTTPException
     try:
@@ -137,6 +139,7 @@ def start_attack_run(
             attack_families=families,
             execution_mode=mode,
             target_id=target_id,
+            defense=defense,
         )
     except RuntimeError as e:
         import logging; logging.error(f"ATTACK EXCEPTION: {str(e)}"); raise HTTPException(status_code=400, detail=str(e))

@@ -366,6 +366,13 @@
               }
             ]
           },
+          "attack_path": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Attack Path"
+          },
           "duration_ms": {
             "type": "number",
             "title": "Duration Ms",
@@ -391,7 +398,8 @@
         "enum": [
           "indirect_prompt_injection",
           "unauthorized_tool_use",
-          "memory_poisoning"
+          "memory_poisoning",
+          "tool_chaining"
         ],
         "title": "AttackFamily"
       },
@@ -461,6 +469,16 @@
             "anyOf": [
               {
                 "$ref": "#/components/schemas/ExecutionMode"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "defense_profile": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DefenseProfile"
               },
               {
                 "type": "null"
@@ -572,6 +590,13 @@
             },
             "type": "array",
             "title": "Family Results"
+          },
+          "regressions_introduced": {
+            "items": {
+              "$ref": "#/components/schemas/AttackFamily"
+            },
+            "type": "array",
+            "title": "Regressions Introduced"
           },
           "cost_usd": {
             "anyOf": [
@@ -812,6 +837,13 @@
               }
             ],
             "title": "Policy Rule Id"
+          },
+          "attack_path": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Attack Path"
           }
         },
         "type": "object",

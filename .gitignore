@@ -2,6 +2,7 @@
 .env
 .env.*
 .venv/
+.venv-api
 
 # Node, Backend & Frontend
 node_modules/
@@ -30,3 +31,7 @@ Thumbs.db
 .vscode/
 .idea/
 data/traces/
+*.egg-info/
+defense-response.json
+openapi-live.json
+

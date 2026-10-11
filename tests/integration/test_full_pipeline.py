@@ -184,3 +184,28 @@ def test_demo_stopping_reason_accuracy_for_executed_families():
     assert all_trace.stopping_reason == StoppingReason.ALL_ATTACK_FAMILIES_COMPLETED
 
 
+def test_regression_testing_and_attack_path_in_defense_validation():
+    coordinator = RedTeamCoordinator()
+    baseline = coordinator.run_attack_suite()
+    defense = DefenseProfile()
+    report = coordinator.validate_defense(baseline_run_id=baseline.run_id, defense=defense)
+
+    assert hasattr(report, "regressions_introduced")
+    assert isinstance(report.regressions_introduced, list)
+    # With standard hardened defense, no regressions should be introduced
+    assert len(report.regressions_introduced) == 0
+
+
+def test_attack_path_and_model_call_metadata_captured():
+    coordinator = RedTeamCoordinator()
+    trace = coordinator.run_attack_suite()
+
+    assert len(trace.attempts) > 0
+    first_attempt = trace.attempts[0]
+    assert hasattr(first_attempt, "attack_path")
+    assert len(first_attempt.attack_path) >= 2
+    assert first_attempt.model_call is not None
+    assert first_attempt.model_call.provider is not None
+
+
+

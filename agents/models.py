@@ -7,6 +7,7 @@ class AttackFamily(str, Enum):
     INDIRECT_PROMPT_INJECTION = "indirect_prompt_injection"
     UNAUTHORIZED_TOOL_USE = "unauthorized_tool_use"
     MEMORY_POISONING = "memory_poisoning"
+    TOOL_CHAINING = "tool_chaining"
 
 
 class Severity(str, Enum):
@@ -106,6 +107,7 @@ class AttackAttempt(BaseModel):
     adaptation_notes: Optional[str] = None
     failed_success_predicate: Optional[str] = None
     model_call: Optional[ModelCallMetadata] = None
+    attack_path: List[str] = Field(default_factory=list)
     duration_ms: float = 0.0
     timestamp: str = ""
 
@@ -120,6 +122,7 @@ class Finding(BaseModel):
     mitigation: str
     attempt_id: int
     policy_rule_id: Optional[str] = None
+    attack_path: List[str] = Field(default_factory=list)
 
 
 class DefenseProfile(BaseModel):
@@ -174,6 +177,7 @@ class EvaluationReport(BaseModel):
     adaptive_bypass_rate: float
     legitimate_task_passed: bool
     family_results: List[FamilyReplayResult] = Field(default_factory=list)
+    regressions_introduced: List[AttackFamily] = Field(default_factory=list)
     cost_usd: Optional[float] = None
     cost_status: str = "unavailable"
     status: str
